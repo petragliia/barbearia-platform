@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { createProductAction, updateProductAction } from "../../actions/productActions";
-import { ProductFormValues } from "../../schemas/productSchema";
+import { createProductAction, updateProductAction } from "../actions/productActions";
+import { ProductFormValues } from "../schemas/productSchema";
 import { useRouter } from "next/navigation";
 
 interface UseProductSubmitProps {
