@@ -6,6 +6,7 @@ import { X, Minus, Plus, ShoppingBag, Trash2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useParams } from 'next/navigation'; // Get dynamic params
 import { useCheckout } from '@/features/shop/hooks/useCheckout';
+import { toast } from 'sonner';
 
 export default function CartDrawer() {
     const { items, isOpen, toggleCart, updateQuantity, getTotalPrice } = useCartStore();
@@ -25,9 +26,10 @@ export default function CartDrawer() {
                 slug: currentSlug,
                 barberId: currentSlug ? undefined : 'demo-fallback'
             });
-        } catch (error) {
-            // Future: Use Toast here.
-            alert('Falha no checkout. Tente novamente.');
+        } catch (error: any) {
+            toast.error('Não foi possível iniciar o checkout', {
+                description: error.message || 'Tente novamente mais tarde.'
+            });
         }
     };
 

@@ -1,25 +1,25 @@
 "use client";
 
-import { useToastStore } from "./use-toast";
-import { Toast } from "./Toast";
-import { AnimatePresence } from "framer-motion";
+import { Toaster as Sonner } from "sonner";
 
-export function Toaster() {
-    const { toasts, removeToast } = useToastStore();
+type ToasterProps = React.ComponentProps<typeof Sonner>;
 
+export function Toaster({ ...props }: ToasterProps) {
     return (
-        <div className="fixed bottom-0 right-0 z-[100] flex flex-col p-4 gap-2 w-full max-w-[420px] pointer-events-none">
-            <AnimatePresence mode="sync">
-                {toasts.map((toast) => (
-                    <div key={toast.id} className="pointer-events-auto">
-                        <Toast
-                            message={toast.title + (toast.description ? `: ${toast.description}` : "")}
-                            onClose={() => removeToast(toast.id)}
-                            type={toast.variant === 'destructive' ? 'error' : 'success'}
-                        />
-                    </div>
-                ))}
-            </AnimatePresence>
-        </div>
+        <Sonner
+            className="toaster group"
+            toastOptions={{
+                classNames: {
+                    toast:
+                        "group toast group-[.toaster]:bg-white group-[.toaster]:text-slate-950 group-[.toaster]:border-slate-200 group-[.toaster]:shadow-lg",
+                    description: "group-[.toast]:text-slate-500",
+                    actionButton:
+                        "group-[.toast]:bg-slate-900 group-[.toast]:text-slate-50",
+                    cancelButton:
+                        "group-[.toast]:bg-slate-100 group-[.toast]:text-slate-500",
+                },
+            }}
+            {...props}
+        />
     );
 }

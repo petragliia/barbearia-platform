@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useTransition } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { createProductAction, updateProductAction } from "../../actions/productActions";
