@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { Service } from '@/types/barbershop';
+import { Product } from '@/features/products/types';
 
 interface BookingData {
     name: string;
     phone: string;
     date: Date;
     time: string;
-    service: Service;
+    services: Service[]; // Changed from single service to array
     barbershopId: string;
+    barberId: string;
+    barberName: string;
+    products?: Product[];
 }
 
 export function useBooking() {
@@ -57,14 +61,28 @@ export function useBooking() {
             const appointmentDate = new Date(data.date);
             appointmentDate.setHours(hours, minutes, 0, 0);
 
+            // Calculate totals
+            const totalDuration = data.services.reduce((acc, s) => acc + parseInt(s.duration.replace(/\D/g, '') || '30'), 0);
+            const totalPrice = data.services.reduce((acc, s) => acc + s.price, 0);
+            const serviceNames = data.services.map(s => s.name).join(' + ');
+
             const payload = {
                 barbershopId: data.barbershopId,
-                serviceId: data.service.name.toLowerCase().replace(/\s+/g, '-'), // Generate ID from name
-                serviceName: data.service.name,
-                price: data.service.price,
+                serviceId: data.services.length === 1 ? data.services[0].name.toLowerCase().replace(/\s+/g, '-') : 'combo',
+                serviceName: serviceNames,
+                services: data.services, // Save full details if needed
+                price: totalPrice,
                 date: appointmentDate.toISOString(),
+                duration: totalDuration,
                 customerName: data.name,
                 customerPhone: data.phone,
+                barberId: data.barberId,
+                barberName: data.barberName,
+                products: data.products?.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    price: p.price
+                })) || []
             };
 
             const res = await fetch('/api/booking', {

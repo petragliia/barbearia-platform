@@ -24,7 +24,8 @@ export default function ContactSection({ contact, isEditing, onUpdate }: Contact
     };
 
     return (
-        <section className="py-24 bg-[#050505] relative border-t border-[#d4af37]/10">
+
+        <section className="py-24 relative border-t border-[var(--color-primary)]/10" style={{ backgroundColor: 'var(--color-bg)' }}>
             <div className="container mx-auto px-6 max-w-5xl">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -32,8 +33,8 @@ export default function ContactSection({ contact, isEditing, onUpdate }: Contact
                     viewport={{ once: true }}
                     className="text-center mb-16"
                 >
-                    <h2 className="text-4xl md:text-5xl font-bold mb-4 text-[#d4af37] font-serif">Fale Conosco</h2>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
+                    <h2 className="text-4xl md:text-5xl font-bold mb-4 text-[var(--color-primary)]">Fale Conosco</h2>
+                    <p className="max-w-2xl mx-auto opacity-70 text-[var(--color-text)]">
                         Tem alguma dúvida ou precisa de mais informações? Entre em contato conosco através de um dos canais abaixo.
                     </p>
                 </motion.div>
@@ -46,44 +47,44 @@ export default function ContactSection({ contact, isEditing, onUpdate }: Contact
                         className="space-y-8"
                     >
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-900">
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[var(--color-bg)] bg-[var(--color-primary)]">
                                 <Phone size={24} />
                             </div>
                             <div>
-                                <p className="text-sm text-slate-500 font-medium">Telefone</p>
+                                <p className="text-sm font-medium opacity-60 text-[var(--color-text)]">Telefone</p>
                                 <EditableText
                                     as="p"
                                     isEditing={!!isEditing}
                                     value={contact.phone}
                                     onChange={(val) => onUpdate?.('phone', val)}
-                                    className="font-bold text-slate-900"
+                                    className="font-bold text-[var(--color-text)]"
                                 />
                             </div>
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-900">
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[var(--color-bg)] bg-[var(--color-primary)]">
                                 <MapPin size={24} />
                             </div>
                             <div>
-                                <p className="text-sm text-slate-500 font-medium">Endereço</p>
+                                <p className="text-sm font-medium opacity-60 text-[var(--color-text)]">Endereço</p>
                                 <EditableText
                                     as="p"
                                     isEditing={!!isEditing}
                                     value={contact.address}
                                     onChange={(val) => onUpdate?.('address', val)}
-                                    className="font-bold text-slate-900"
+                                    className="font-bold text-[var(--color-text)]"
                                 />
                             </div>
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-900">
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[var(--color-bg)] bg-[var(--color-primary)]">
                                 <Instagram size={24} />
                             </div>
                             <div>
-                                <p className="text-sm text-slate-500 font-medium">Instagram</p>
-                                <div className="flex items-center font-bold text-slate-900">
+                                <p className="text-sm font-medium opacity-60 text-[var(--color-text)]">Instagram</p>
+                                <div className="flex items-center font-bold text-[var(--color-text)]">
                                     @
                                     <EditableText
                                         as="span"
@@ -97,17 +98,17 @@ export default function ContactSection({ contact, isEditing, onUpdate }: Contact
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-900">
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[var(--color-bg)] bg-[var(--color-primary)]">
                                 <MessageSquare size={24} />
                             </div>
                             <div>
-                                <p className="text-sm text-slate-500 font-medium">WhatsApp</p>
+                                <p className="text-sm font-medium opacity-60 text-[var(--color-text)]">WhatsApp</p>
                                 <EditableText
                                     as="p"
                                     isEditing={!!isEditing}
                                     value={contact.whatsapp}
                                     onChange={(val) => onUpdate?.('whatsapp', val)}
-                                    className="font-bold text-slate-900"
+                                    className="font-bold text-[var(--color-text)]"
                                 />
                             </div>
                         </div>
@@ -117,18 +118,19 @@ export default function ContactSection({ contact, isEditing, onUpdate }: Contact
                         initial={{ opacity: 0, x: 30 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
-                        className="bg-[#111] p-8 rounded-2xl border border-[#d4af37]/20 text-center"
+                        className="p-8 rounded-2xl border text-center border-[var(--color-primary)]/20 bg-[var(--color-text)]/5"
                     >
-                        <MessageCircle size={48} className="text-[#d4af37] mx-auto mb-6" />
-                        <h3 className="text-2xl font-bold text-white mb-4">Dúvidas Rápidas?</h3>
-                        <p className="text-gray-400 mb-8">
+                        <MessageCircle size={48} className="mx-auto mb-6 text-[var(--color-primary)]" />
+                        <h3 className="text-2xl font-bold mb-4 text-[var(--color-text)]">Dúvidas Rápidas?</h3>
+                        <p className="mb-8 opacity-70 text-[var(--color-text)]">
                             Fale diretamente conosco pelo WhatsApp. Respondemos o mais rápido possível.
                         </p>
                         <button
                             onClick={handleWhatsAppClick}
                             disabled={isEditing}
                             className={`
-                                w-full py-4 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2
+                                w-full py-4 font-bold rounded-lg transition-colors flex items-center justify-center gap-2
+                                text-[var(--color-bg)] bg-[var(--color-primary)] hover:opacity-90
                                 ${isEditing ? 'opacity-50 cursor-not-allowed' : ''}
                             `}
                         >

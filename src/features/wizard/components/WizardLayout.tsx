@@ -56,19 +56,23 @@ function WizardContent() {
                 const fullData: any = {
                     slug: barbershopData.slug,
                     template_id: selectedTemplate,
-                    content: {
-                        name: barbershopData.name,
-                        description: 'A melhor barbearia da região.', // Default
-                        hero_image: getTemplateImage(selectedTemplate),
-                        colors: getTemplateColors(selectedTemplate),
-                        contact: {
-                            phone: barbershopData.whatsapp,
-                            whatsapp: barbershopData.whatsapp,
-                            address: 'Endereço não informado', // Default
-                        }
+                    name: barbershopData.name,
+                    isPublished: false, // Default: Site starts offline
+                    colors: getTemplateColors(selectedTemplate),
+                    contact: {
+                        phone: barbershopData.whatsapp,
+                        whatsapp: barbershopData.whatsapp,
+                        address: 'Endereço não informado', // Default
+                        instagram: '',
+                        email: ''
                     },
+                    products: [], // Empty array, never undefined
                     services: barbershopData.services,
                     gallery: [], // Empty for now
+                    content: {
+                        description: 'A melhor barbearia da região.', // Default
+                        hero_image: getTemplateImage(selectedTemplate),
+                    },
                 };
 
                 // Initiate Payment Flow

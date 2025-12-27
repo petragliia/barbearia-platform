@@ -49,44 +49,44 @@ export default function MarketingPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">Marketing e Comunicação</h1>
-                <p className="text-gray-500">Gerencie suas campanhas e automações de mensagens.</p>
+                <h1 className="text-2xl font-bold text-slate-100">Marketing e Comunicação</h1>
+                <p className="text-slate-400">Gerencie suas campanhas e automações de mensagens.</p>
             </div>
 
             <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-                    <TabsTrigger value="automations">Automações</TabsTrigger>
-                    <TabsTrigger value="campaigns">Campanhas</TabsTrigger>
-                    <TabsTrigger value="loyalty" className="flex items-center gap-2">
+                <TabsList className="grid w-full grid-cols-4 bg-slate-800 text-slate-400">
+                    <TabsTrigger value="overview" className="data-[state=active]:bg-slate-900 data-[state=active]:text-slate-100">Visão Geral</TabsTrigger>
+                    <TabsTrigger value="automations" className="data-[state=active]:bg-slate-900 data-[state=active]:text-slate-100">Automações</TabsTrigger>
+                    <TabsTrigger value="campaigns" className="data-[state=active]:bg-slate-900 data-[state=active]:text-slate-100">Campanhas</TabsTrigger>
+                    <TabsTrigger value="loyalty" className="flex items-center gap-2 data-[state=active]:bg-slate-900 data-[state=active]:text-slate-100">
                         <Crown size={14} className="text-yellow-500" />
                         Fidelidade
                     </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="overview">
+                <TabsContent value="overview" className="mt-6">
                     <MarketingStats />
                 </TabsContent>
 
-                <TabsContent value="automations">
+                <TabsContent value="automations" className="mt-6">
                     <AutomationConfig />
                 </TabsContent>
 
-                <TabsContent value="campaigns">
-                    <Card>
+                <TabsContent value="campaigns" className="mt-6">
+                    <Card className="bg-slate-800 border-slate-700">
                         <CardHeader>
-                            <CardTitle>Campanhas em Massa</CardTitle>
-                            <CardDescription>Envie promoções para toda sua base de clientes.</CardDescription>
+                            <CardTitle className="text-slate-100">Campanhas em Massa</CardTitle>
+                            <CardDescription className="text-slate-400">Envie promoções para toda sua base de clientes.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-center py-12 text-gray-500">
+                            <div className="text-center py-12 text-slate-500">
                                 <p>Funcionalidade de campanhas em breve.</p>
                             </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="loyalty">
+                <TabsContent value="loyalty" className="mt-6">
                     <LoyaltyDashboardConfig
                         barbershopId={user?.uid || ''}
                         initialConfig={loyaltyConfig}

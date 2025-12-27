@@ -1,56 +1,60 @@
-import { notFound } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import { notFound } from 'next/navigation';
+import { BarbershopData } from '@/types/barbershop';
 import TemplateClassic from '@/features/templates/components/TemplateClassic';
 import TemplateModern from '@/features/templates/components/TemplateModern';
 import TemplateUrban from '@/features/templates/components/TemplateUrban';
-import { BarbershopData } from '@/types/barbershop';
-import FAQSection from '@/components/ui/FAQSection';
-import ContactSection from '@/components/ui/ContactSection';
-import GreetingFeature from '@/components/features/GreetingFeature';
 
-interface PageProps {
-    params: Promise<{ slug: string }>;
-}
-
-// Force dynamic rendering to ensure we always fetch the latest data
-export const dynamic = 'force-dynamic';
-
-export default async function BarberPage({ params }: PageProps) {
+export default async function PublicBarberPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
+    console.log('Buscando slug:', slug);
 
-    try {
-        const q = query(collection(db, 'barbershops'), where('slug', '==', slug));
-        const querySnapshot = await getDocs(q);
+    const q = query(collection(db, 'barbershops'), where('slug', '==', slug));
+    const querySnapshot = await getDocs(q);
 
-        if (querySnapshot.empty) {
-            notFound();
-        }
-
-        const doc = querySnapshot.docs[0];
-        const data = doc.data() as BarbershopData;
-
-        // Ensure template_id exists, fallback to classic if missing
-        const templateId = data.template_id || 'classic';
-
-        let TemplateComponent;
-        switch (templateId) {
-            case 'classic': TemplateComponent = TemplateClassic; break;
-            case 'modern': TemplateComponent = TemplateModern; break;
-            case 'urban': TemplateComponent = TemplateUrban; break;
-            default: TemplateComponent = TemplateClassic; break;
-        }
-
-        return (
-            <div className="bg-white">
-                <GreetingFeature />
-                <TemplateComponent data={data} />
-                {data.faq && <FAQSection faq={data.faq} />}
-                <ContactSection contact={data.content.contact} />
-            </div>
-        );
-    } catch (error) {
-        console.error("Error fetching barbershop:", error);
+    if (querySnapshot.empty) {
+        console.log('Nenhuma barbearia encontrada para o slug:', slug);
         notFound();
+    }
+
+    // Take the first document found
+    const doc = querySnapshot.docs[0];
+    let rawData = doc.data() as any;
+
+    // Normalization for legacy data
+    if (!rawData.colors && rawData.content?.colors) {
+        rawData.colors = rawData.content.colors;
+    }
+    if (!rawData.contact && rawData.content?.contact) {
+        rawData.contact = rawData.content.contact;
+    }
+    if (!rawData.products) {
+        rawData.products = [];
+    }
+
+    const data = rawData as BarbershopData;
+
+    // Logic for "Dev Mode" (Bypass)
+    const isDev = process.env.NODE_ENV === 'development';
+
+    if (!isDev && !data.isPublished) {
+        console.log('Barbearia nao publicada (producao):', slug);
+        notFound();
+    }
+
+    // Render the Template
+    // Check template_id and render the corresponding component
+    switch (data.template_id) {
+        case 'urban':
+            return <TemplateUrban data={data} />;
+        case 'classic':
+            return <TemplateClassic data={data} />;
+        case 'modern':
+            return <TemplateModern data={data} />;
+        default:
+            // Fallback if template_id is missing or unknown
+            console.warn(`Template desconhecido: ${data.template_id}, usando fallback (Modern).`);
+            return <TemplateModern data={data} />;
     }
 }

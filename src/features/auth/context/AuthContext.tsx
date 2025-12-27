@@ -4,12 +4,15 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged, signInAnonymously, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
+import { PlanTier } from '@/config/plans';
 
 export type UserLevel = 'beginner' | 'pro';
 
 export interface UserProfile {
     uid: string;
     level: UserLevel;
+    plan: PlanTier;
+    subscriptionStatus: 'ACTIVE' | 'CANCELED' | 'PAST_DUE' | 'TRIALING';
     email?: string | null;
     addons?: string[]; // e.g., 'marketing', 'analytics'
     createdAt: string;
@@ -50,6 +53,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         const newProfile: UserProfile = {
                             uid: firebaseUser.uid,
                             level: 'beginner',
+                            plan: 'FREE', // Default plan
+                            subscriptionStatus: 'ACTIVE',
                             email: firebaseUser.email,
                             addons: [],
                             createdAt: new Date().toISOString()

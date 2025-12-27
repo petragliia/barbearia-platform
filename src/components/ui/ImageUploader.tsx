@@ -3,12 +3,15 @@
 import { useRef, useState } from 'react';
 import { Upload, Loader2 } from 'lucide-react';
 
+import { cn } from '@/lib/utils';
+
 interface ImageUploaderProps {
     onUpload: (url: string) => void;
     label?: string;
+    className?: string;
 }
 
-export default function ImageUploader({ onUpload, label }: ImageUploaderProps) {
+export default function ImageUploader({ onUpload, label, className }: ImageUploaderProps) {
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -36,7 +39,10 @@ export default function ImageUploader({ onUpload, label }: ImageUploaderProps) {
             <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full backdrop-blur-sm transition-all z-20 flex items-center gap-2"
+                className={cn(
+                    "absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full backdrop-blur-sm transition-all z-20 flex items-center gap-2",
+                    className
+                )}
                 title="Alterar imagem"
             >
                 {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}

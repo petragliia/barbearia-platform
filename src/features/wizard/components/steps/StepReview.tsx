@@ -2,7 +2,7 @@ import { useWizardStore } from '@/store/useWizardStore';
 import { CheckCircle2, Globe, Phone, Scissors, Calendar, AlertCircle } from 'lucide-react';
 import OrderBump from '../OrderBump';
 import { ADDONS } from '@/config/addons';
-import { PLANS } from '@/config/plans';
+import { VISIBLE_PLANS } from '@/config/plans';
 
 export default function StepReview() {
     const { barbershopData, selectedTemplate, selectedAddons, selectedPlan } = useWizardStore();
@@ -16,7 +16,7 @@ export default function StepReview() {
         }
     };
 
-    const currentPlan = PLANS.find(p => p.id === selectedPlan) || PLANS[1]; // Default to Starter if not found
+    const currentPlan = VISIBLE_PLANS.find(p => p.id === selectedPlan) || VISIBLE_PLANS[1]; // Default to Starter if not found
     const basePrice = currentPlan.price / 100;
 
     const addonsTotal = selectedAddons.reduce((total, addonId) => {

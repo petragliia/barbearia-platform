@@ -8,4 +8,6 @@ export interface Appointment {
     date: any; // Timestamp from Firestore
     status: 'pending' | 'confirmed' | 'cancelled';
     createdAt: any;
+    barberId: string;
+    barberName: string;
 }

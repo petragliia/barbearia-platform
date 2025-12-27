@@ -1,8 +1,10 @@
+
 import { BarbershopData } from '@/types/barbershop';
 
 export const MOCK_BARBERSHOPS: Record<string, BarbershopData> = {
     'barbearia-do-tonio': {
         id: '1',
+        uid: 'mock-user-1',
         slug: 'barbearia-do-tonio',
         template_id: 'classic',
         content: {
@@ -32,6 +34,7 @@ export const MOCK_BARBERSHOPS: Record<string, BarbershopData> = {
     },
     'cyber-cuts': {
         id: '2',
+        uid: 'mock-user-2',
         slug: 'cyber-cuts',
         template_id: 'modern',
         content: {
@@ -60,6 +63,7 @@ export const MOCK_BARBERSHOPS: Record<string, BarbershopData> = {
     },
     'urban-style': {
         id: '3',
+        uid: 'mock-user-3',
         slug: 'urban-style',
         template_id: 'urban',
         content: {

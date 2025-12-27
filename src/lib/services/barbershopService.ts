@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase';
-import { collection, doc, getDocs, query, setDoc, where, Timestamp } from 'firebase/firestore';
+import { collection, doc, getDocs, query, setDoc, where, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { BarbershopData } from '@/types/barbershop';
 
 export async function createBarbershop(data: BarbershopData, userId: string): Promise<string> {
@@ -25,8 +25,18 @@ export async function createBarbershop(data: BarbershopData, userId: string): Pr
         ...data,
         id: newDocRef.id, // Sobrescreve o ID temporário
         ownerId: userId,
-        createdAt: Timestamp.now(),
+        createdAt: serverTimestamp(),
         status: 'active', // Inicialmente active para testes
+        isPublished: false,
+        products: data.products || [],
+        contact: {
+            phone: data.contact?.phone || "",
+            whatsapp: data.contact?.whatsapp || "",
+            address: data.contact?.address || "Endereço não informado",
+            instagram: data.contact?.instagram || "",
+            email: data.contact?.email || ""
+        },
+        services: data.services || [],
     };
 
     await setDoc(newDocRef, barbershopToSave);
@@ -53,4 +63,16 @@ export async function updateBarbershop(barbershopId: string, data: Partial<Barbe
     // We need to import updateDoc
     const { updateDoc } = await import('firebase/firestore');
     await updateDoc(docRef, data);
+}
+
+export async function getBarbershopById(barbershopId: string): Promise<BarbershopData | null> {
+    const { getDoc } = await import('firebase/firestore');
+    const docRef = doc(db, 'barbershops', barbershopId);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+        return docSnap.data() as BarbershopData;
+    } else {
+        return null;
+    }
 }

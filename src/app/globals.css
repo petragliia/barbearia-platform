@@ -5,6 +5,17 @@
     -webkit-text-stroke: 1px currentColor;
     color: transparent;
   }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
 }
 
 @keyframes marquee {
@@ -31,6 +42,14 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Classic Premium Theme Colors */
+  --color-classic-gold: #D4AF37;
+  --color-classic-leather: #4A3728;
+  --color-classic-wood: #1A1110;
+  --color-classic-cream: #F5F5DC;
+  --color-classic-bg: #0F0908;
+  /* Very dark leather/wood tone for bg */
 }
 
 @media (prefers-color-scheme: dark) {

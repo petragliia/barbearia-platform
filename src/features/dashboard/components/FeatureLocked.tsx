@@ -15,7 +15,7 @@ export default function FeatureLocked({ title, description }: FeatureLockedProps
             <h2 className="text-2xl font-bold text-gray-900 mb-2">{title}</h2>
             <p className="text-gray-500 max-w-md mb-8">{description}</p>
             <Link
-                href="/dashboard/settings"
+                href="/dashboard/plan"
                 className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
             >
                 Fazer Upgrade

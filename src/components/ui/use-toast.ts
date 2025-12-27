@@ -10,25 +10,37 @@ import { useState, useEffect } from "react";
 
 import { create } from 'zustand';
 
+interface ToastData {
+    id: string;
+    title: string;
+    description: string;
+    variant?: 'default' | 'destructive' | 'success';
+    className?: string;
+}
+
 interface ToastState {
-    toasts: { title: string; description: string; variant?: 'default' | 'destructive' }[];
-    addToast: (toast: { title: string; description: string; variant?: 'default' | 'destructive' }) => void;
+    toasts: ToastData[];
+    addToast: (toast: Omit<ToastData, 'id'>) => void;
+    removeToast: (id: string) => void;
 }
 
 export const useToastStore = create<ToastState>((set) => ({
     toasts: [],
-    addToast: (toast) => set((state) => ({ toasts: [...state.toasts, toast] })),
+    addToast: (toast) => {
+        const id = Math.random().toString(36).substring(2, 9);
+        set((state) => ({ toasts: [...state.toasts, { ...toast, id }] }));
+    },
+    removeToast: (id) => set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) })),
 }));
 
 export function useToast() {
-    const addToast = useToastStore((state) => state.addToast);
+    const { addToast, removeToast, toasts } = useToastStore();
 
     return {
-        toast: (props: { title: string; description: string; variant?: 'default' | 'destructive' }) => {
+        toast: (props: Omit<ToastData, 'id'>) => {
             addToast(props);
-            // Simple fallback for demo
-            console.log("Toast:", props.title, props.description);
-            // Maybe trigger a native notification or just an alert for verifying behavior in verification step
-        }
+        },
+        dismiss: (id: string) => removeToast(id),
+        toasts
     };
 }

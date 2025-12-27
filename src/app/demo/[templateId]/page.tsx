@@ -5,6 +5,7 @@ import { BarbershopData } from '@/types/barbershop';
 // Mock data for pure template demos (generic content)
 const DEMO_DATA: BarbershopData = {
     id: 'demo',
+    uid: 'demo-uid',
     slug: 'demo',
     template_id: 'classic', // will be overridden
     content: {
@@ -12,9 +13,10 @@ const DEMO_DATA: BarbershopData = {
         description: 'Experimente a qualidade e o estilo que você merece.',
         hero_image: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=2074&auto=format&fit=crop',
         colors: {
-            primary: '#1a1a1a',
-            secondary: '#d4af37',
-            accent: '#ffffff'
+            primary: '#d4af37', // Gold for Classic
+            secondary: '#000000',
+            background: '#0a0a0a',
+            text: '#d4af37'
         },
         contact: {
             phone: '(11) 99999-9999',
@@ -48,12 +50,22 @@ export default async function DemoPage({ params }: { params: Promise<{ templateI
     // Override template_id in mock data
     const data = { ...DEMO_DATA, template_id: templateId as any };
 
-    // Adjust colors/images slightly based on template for better preview
+    // Adjust colors/images based on template
     if (templateId === 'modern') {
-        data.content.colors.secondary = '#38bdf8';
+        data.content.colors = {
+            primary: '#111827',
+            secondary: '#38bdf8',
+            background: '#ffffff',
+            text: '#111827'
+        };
         data.content.hero_image = 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=2070&auto=format&fit=crop';
     } else if (templateId === 'urban') {
-        data.content.colors.secondary = '#ef4444';
+        data.content.colors = {
+            primary: '#ef4444',
+            secondary: '#00F0FF',
+            background: '#050505',
+            text: '#ffffff'
+        };
         data.content.hero_image = 'https://images.unsplash.com/photo-1593702295094-380734e4a82a?q=80&w=2065&auto=format&fit=crop';
     }
 

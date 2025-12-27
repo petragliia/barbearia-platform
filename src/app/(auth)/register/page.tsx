@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
-import { UserPlus, Mail, Lock, User, Loader2, ArrowLeft } from 'lucide-react';
+import { UserPlus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function RegisterPage() {
@@ -21,11 +22,19 @@ export default function RegisterPage() {
         setError('');
         try {
             const provider = new GoogleAuthProvider();
-            await signInWithPopup(auth, provider);
+            const result = await signInWithPopup(auth, provider);
 
-            // Redirect to Wizard, preserving params
-            const searchParams = new URLSearchParams(window.location.search);
-            router.push(`/wizard?${searchParams.toString()}`);
+            // Check if user already exists in database
+            const userDoc = await getDoc(doc(db, 'users', result.user.uid));
+
+            if (userDoc.exists()) {
+                // User already has a profile, redirect to dashboard
+                router.push('/dashboard');
+            } else {
+                // New user, redirect to Wizard
+                const searchParams = new URLSearchParams(window.location.search);
+                router.push(`/wizard?${searchParams.toString()}`);
+            }
         } catch (err: any) {
             console.error(err);
             setError('Erro ao criar conta com Google. Tente novamente.');
@@ -73,123 +82,123 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden w-full max-w-sm mx-auto">
-            <div className="p-6">
-                <div className="flex justify-center mb-4">
-                    <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center text-white shadow-lg">
-                        <UserPlus size={24} />
+        <div className="w-full">
+            <div className="mb-8">
+                <Link href="/" className="inline-flex items-center text-sm text-slate-400 hover:text-white transition-colors mb-6 group">
+                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center mr-2 group-hover:bg-white/10 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-left"><path d="m12 19-7-7 7-7" /><path d="M19 12H5" /></svg>
                     </div>
+                    Voltar para Home
+                </Link>
+
+                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-600/20">
+                    <UserPlus size={24} />
+                </div>
+                <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">Criar sua conta</h2>
+                <p className="text-slate-400">Entre com seus dados para começar.</p>
+            </div>
+
+            <div className="space-y-4">
+                <button
+                    onClick={handleGoogleRegister}
+                    disabled={loading}
+                    className="w-full bg-slate-900 border border-slate-800 text-white py-3 px-4 rounded-xl font-medium hover:bg-slate-800 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                >
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+                    Continuar com Google
+                </button>
+
+                <button
+                    disabled={true} // Placeholder for now
+                    className="w-full bg-slate-900 border border-slate-800 text-white py-3 px-4 rounded-xl font-medium hover:bg-slate-800 transition-all flex items-center justify-center gap-3 disabled:opacity-50 relative overflow-hidden group"
+                >
+                    <div className="absolute top-0 right-0 bg-blue-600 text-[10px] text-white px-2 py-0.5 rounded-bl-lg font-bold">Em breve</div>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-github"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 1.5-3 1.5-3 1.5 6 2.5 8 2.5 2 7 2.5 8 2.5 0 1.15-.28 2.35-1 3.5.73 1.02.38 2.25 1 3.5-.2 2.7-3 5.5-6 5.5a4.8 4.8 0 0 0-1 3.5v4" /><path d="M9 18c-4.51 2-5-2-7-2" /></svg>
+                    Continuar com GitHub
+                </button>
+
+                <div className="relative flex items-center justify-center py-4">
+                    <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-slate-800"></div>
+                    </div>
+                    <span className="relative bg-slate-950 px-4 text-xs text-slate-500 font-medium uppercase tracking-wider">OU</span>
                 </div>
 
-                <h2 className="text-2xl font-black text-center text-gray-900 mb-1 tracking-tight">Crie sua conta</h2>
-                <p className="text-center text-gray-500 mb-6 font-medium text-sm">Comece a gerenciar sua barbearia hoje</p>
+                <form onSubmit={handleRegister} className="space-y-4">
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-400 mb-1.5 ml-1">Nome Completo</label>
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 text-white px-4 py-3 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-slate-600 text-sm"
+                                placeholder="Seu Nome"
+                                required
+                            />
+                        </div>
 
-                <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-400 mb-1.5 ml-1">Email</label>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 text-white px-4 py-3 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-slate-600 text-sm"
+                                placeholder="seu@email.com"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-400 mb-1.5 ml-1">Senha</label>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 text-white px-4 py-3 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-slate-600 text-sm"
+                                placeholder="Min. 6 caracteres"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-400 mb-1.5 ml-1">Confirmar Senha</label>
+                            <input
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 text-white px-4 py-3 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-slate-600 text-sm"
+                                placeholder="Confirmar senha"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    {error && (
+                        <div className="p-3 bg-red-500/10 text-red-500 text-xs rounded-xl text-center border border-red-500/20 font-medium">
+                            {error}
+                        </div>
+                    )}
+
+                    <div className="text-xs text-slate-500 px-1">
+                        Ao continuar, você concorda com os <a href="#" className="underline hover:text-slate-300">Termos de Serviço</a> e <a href="#" className="underline hover:text-slate-300">Política de Privacidade</a>.
+                    </div>
+
                     <button
-                        onClick={handleGoogleRegister}
+                        type="submit"
                         disabled={loading}
-                        className="w-full bg-white border border-gray-200 text-gray-700 py-3 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3 disabled:opacity-70 shadow-sm hover:shadow-md"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold text-base transition-all transform hover:scale-[1.01] flex items-center justify-center gap-2 disabled:opacity-70 disabled:hover:scale-100 shadow-lg shadow-blue-600/20"
                     >
-                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-                        Criar conta com Google
+                        {loading ? <Loader2 className="animate-spin" size={20} /> : 'Continuar'}
                     </button>
+                </form>
 
-                    <div className="relative flex items-center justify-center py-1">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-200"></div>
-                        </div>
-                        <span className="relative bg-white px-4 text-xs text-gray-500 font-medium">ou com email</span>
-                    </div>
-
-                    <form onSubmit={handleRegister} className="space-y-3">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1 ml-1">Nome Completo</label>
-                            <div className="relative group">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-black transition-colors" size={16} />
-                                <input
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all bg-gray-50/50 focus:bg-white placeholder-gray-300 text-sm text-black"
-                                    placeholder="Seu Nome"
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1 ml-1">Email</label>
-                            <div className="relative group">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-black transition-colors" size={16} />
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all bg-gray-50/50 focus:bg-white placeholder-gray-300 text-sm text-black"
-                                    placeholder="seu@email.com"
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1 ml-1">Senha</label>
-                            <div className="relative group">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-black transition-colors" size={16} />
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all bg-gray-50/50 focus:bg-white placeholder-gray-300 text-sm text-black"
-                                    placeholder="••••••••"
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1 ml-1">Confirmar Senha</label>
-                            <div className="relative group">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-black transition-colors" size={16} />
-                                <input
-                                    type="password"
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all bg-gray-50/50 focus:bg-white placeholder-gray-300 text-sm text-black"
-                                    placeholder="••••••••"
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        {error && (
-                            <div className="p-3 bg-red-50 text-red-600 text-xs rounded-xl text-center border border-red-100 font-medium">
-                                {error}
-                            </div>
-                        )}
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full bg-black text-white py-3 rounded-xl font-black text-base hover:bg-gray-900 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2 disabled:opacity-70 disabled:hover:scale-100 mt-2 shadow-xl shadow-black/20"
-                        >
-                            {loading ? <Loader2 className="animate-spin" size={20} /> : 'Criar Conta'}
-                        </button>
-                    </form>
-
-                    <div className="mt-6 text-center text-xs text-gray-500 font-medium">
-                        Já tem uma conta?{' '}
-                        <Link href="/login" className="text-black font-black hover:underline ml-1">
-                            Entrar
-                        </Link>
-                    </div>
-
-                    <div className="mt-4 text-center">
-                        <Link href="/" className="text-xs text-gray-400 hover:text-gray-900 transition-colors flex items-center justify-center gap-2 font-medium group">
-                            <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-                            Voltar para Home
-                        </Link>
-                    </div>
+                <div className="mt-8 text-center text-sm text-gray-500">
+                    Já tem uma conta?{' '}
+                    <Link href="/login" className="text-white hover:text-blue-400 font-medium hover:underline transition-colors ml-1">
+                        Login
+                    </Link>
                 </div>
             </div>
         </div>

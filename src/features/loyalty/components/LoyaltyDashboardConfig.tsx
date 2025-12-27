@@ -11,6 +11,7 @@ import { Gift, Save, Award } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { n8nService } from '@/services/n8nService';
 
 interface LoyaltyDashboardConfigProps {
     barbershopId: string;
@@ -30,11 +31,24 @@ export default function LoyaltyDashboardConfig({ barbershopId, initialConfig }: 
     const handleSave = async () => {
         if (!barbershopId) return;
         setLoading(true);
+
+        toast({
+            title: "Sincronizando...",
+            description: "Conectando com n8n...",
+        });
+
         try {
             const shopRef = doc(db, 'barbershops', barbershopId);
             // Updating the loyalty field inside the barbershop document
             await updateDoc(shopRef, {
                 loyalty: config
+            });
+
+            // Trigger n8n webhook
+            await n8nService.triggerWorkflow('update-settings', {
+                barbershopId,
+                type: 'LOYALTY_UPDATE',
+                config
             });
 
             toast({
@@ -45,7 +59,7 @@ export default function LoyaltyDashboardConfig({ barbershopId, initialConfig }: 
             console.error(error);
             toast({
                 title: "Erro ao salvar",
-                description: "Tente novamente mais tarde.",
+                description: "Falha na sincronização. Tente novamente.",
                 variant: "destructive"
             });
         } finally {
@@ -54,54 +68,56 @@ export default function LoyaltyDashboardConfig({ barbershopId, initialConfig }: 
     };
 
     return (
-        <Card>
+        <Card className="bg-slate-900 border-slate-800">
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <div>
-                        <CardTitle className="flex items-center gap-2">
-                            <Award className="text-yellow-500" />
+                        <CardTitle className="flex items-center gap-2 text-white">
+                            <Award className="text-blue-500" />
                             Programa de Fidelidade VIP
                         </CardTitle>
-                        <CardDescription>
+                        <CardDescription className="text-slate-400">
                             Configure as regras para fidelizar seus clientes.
                         </CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Label htmlFor="loyalty-active" className="text-sm font-medium">
+                        <Label htmlFor="loyalty-active" className="text-sm font-medium text-slate-300">
                             {config.enabled ? 'Ativado' : 'Desativado'}
                         </Label>
                         <Switch
                             id="loyalty-active"
                             checked={config.enabled}
                             onCheckedChange={(checked) => setConfig({ ...config, enabled: checked })}
+                            className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-slate-700"
                         />
                     </div>
                 </div>
             </CardHeader>
             <CardContent className={!config.enabled ? 'opacity-50 pointer-events-none transition-opacity' : 'transition-opacity'}>
-                <div className="grid gap-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="points-required">Pontos para Resgate</Label>
+                <div className="grid gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                            <Label htmlFor="points-required" className="text-slate-300">Pontos para Resgate</Label>
                             <Input
                                 id="points-required"
                                 type="number"
                                 min="1"
                                 value={config.pointsRequired}
                                 onChange={(e) => setConfig({ ...config, pointsRequired: Number(e.target.value) })}
+                                className="bg-slate-950 border-slate-800 text-white placeholder-slate-600 focus:border-blue-500"
                             />
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-slate-500">
                                 Quantos serviços o cliente precisa completar.
                             </p>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="reward-name">Prêmio / Recompensa</Label>
+                        <div className="space-y-3">
+                            <Label htmlFor="reward-name" className="text-slate-300">Prêmio / Recompensa</Label>
                             <div className="relative">
-                                <Gift className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                <Gift className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
                                 <Input
                                     id="reward-name"
-                                    className="pl-9"
+                                    className="pl-9 bg-slate-950 border-slate-800 text-white placeholder-slate-600 focus:border-blue-500"
                                     value={config.rewardName}
                                     onChange={(e) => setConfig({ ...config, rewardName: e.target.value })}
                                     placeholder="Ex: Corte Grátis, 50% OFF"
@@ -110,19 +126,23 @@ export default function LoyaltyDashboardConfig({ barbershopId, initialConfig }: 
                         </div>
                     </div>
 
-                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100 flex gap-4 items-start">
-                        <div className="bg-white p-2 rounded shadow-sm border border-gray-100">
-                            <span className="text-2xl font-bold text-gray-900">{config.pointsPerService}</span>
+                    <div className="bg-slate-950 p-6 rounded-xl border border-slate-800 flex gap-4 items-start">
+                        <div className="bg-blue-500/10 p-3 rounded-lg border border-blue-500/20">
+                            <span className="text-2xl font-bold text-blue-400">{config.pointsPerService}</span>
                         </div>
                         <div>
-                            <h4 className="font-semibold text-yellow-900">Regra de Pontuação</h4>
-                            <p className="text-sm text-yellow-700 mt-1">
-                                Atualmente o sistema soma <strong>1 ponto</strong> automaticamente a cada agendamento concluído.
+                            <h4 className="font-semibold text-white">Regra de Pontuação</h4>
+                            <p className="text-sm text-slate-400 mt-1">
+                                Atualmente o sistema soma <strong className="text-blue-400">1 ponto</strong> automaticamente a cada agendamento concluído.
                             </p>
                         </div>
                     </div>
 
-                    <Button onClick={handleSave} disabled={loading} className="w-full md:w-auto self-end">
+                    <Button
+                        onClick={handleSave}
+                        disabled={loading}
+                        className="w-full md:w-auto self-end bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                    >
                         {loading ? 'Salvando...' : (
                             <>
                                 <Save className="mr-2 h-4 w-4" /> Salvar Configurações

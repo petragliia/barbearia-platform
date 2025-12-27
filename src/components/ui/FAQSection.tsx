@@ -22,7 +22,7 @@ export default function FAQSection({ faq, isEditing, onUpdate, onAdd, onRemove }
     };
 
     return (
-        <section className="py-24 bg-[#0a0a0a] relative overflow-hidden">
+        <section className="py-24 relative overflow-hidden" style={{ backgroundColor: 'var(--color-bg)' }}>
             <div className="container mx-auto px-6 max-w-4xl relative z-10">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -30,11 +30,11 @@ export default function FAQSection({ faq, isEditing, onUpdate, onAdd, onRemove }
                     viewport={{ once: true }}
                     className="text-center mb-16"
                 >
-                    <h2 className="text-4xl md:text-5xl font-bold mb-4 text-[#d4af37] font-serif">Perguntas Frequentes</h2>
+                    <h2 className="text-4xl md:text-5xl font-bold mb-4 text-[var(--color-primary)]">Perguntas Frequentes</h2>
                     <div className="flex justify-center items-center gap-4">
-                        <div className="h-[1px] w-20 bg-[#d4af37]/50"></div>
-                        <HelpCircle size={24} className="text-[#d4af37]" />
-                        <div className="h-[1px] w-20 bg-[#d4af37]/50"></div>
+                        <div className="h-[1px] w-20 bg-[var(--color-primary)] opacity-50"></div>
+                        <HelpCircle size={24} className="text-[var(--color-primary)]" />
+                        <div className="h-[1px] w-20 bg-[var(--color-primary)] opacity-50"></div>
                     </div>
                 </motion.div>
 
@@ -46,20 +46,20 @@ export default function FAQSection({ faq, isEditing, onUpdate, onAdd, onRemove }
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ delay: index * 0.1 }}
-                            className="border border-[#d4af37]/20 rounded-lg overflow-hidden bg-[#111]"
+                            className="border border-[var(--color-primary)]/20 rounded-lg overflow-hidden bg-[var(--color-text)]/5"
                         >
                             <button
                                 onClick={() => toggleAccordion(index)}
-                                className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-[#d4af37]/5 transition-colors"
+                                className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-[var(--color-primary)]/5 transition-colors"
                             >
                                 <EditableText
                                     as="span"
                                     isEditing={!!isEditing}
                                     value={item.question}
                                     onChange={(val) => onUpdate?.(index, 'question', val)}
-                                    className="text-lg font-medium text-[#f3e5ab]"
+                                    className="text-lg font-medium text-[var(--color-text)]"
                                 />
-                                <span className="text-[#d4af37] ml-4">
+                                <span className="text-[var(--color-primary)] ml-4">
                                     {openIndex === index ? <Minus size={20} /> : <Plus size={20} />}
                                 </span>
                             </button>
@@ -72,7 +72,7 @@ export default function FAQSection({ faq, isEditing, onUpdate, onAdd, onRemove }
                                         exit={{ height: 0, opacity: 0 }}
                                         transition={{ duration: 0.3 }}
                                     >
-                                        <div className="px-6 pb-6 pt-2 text-gray-400 border-t border-[#d4af37]/10">
+                                        <div className="px-6 pb-6 pt-2 text-[var(--color-text)] opacity-80 border-t border-[var(--color-primary)]/10">
                                             <EditableText
                                                 as="p"
                                                 isEditing={!!isEditing}
@@ -100,7 +100,7 @@ export default function FAQSection({ faq, isEditing, onUpdate, onAdd, onRemove }
                     {isEditing && onAdd && (
                         <button
                             onClick={onAdd}
-                            className="w-full py-4 border-2 border-dashed border-[#d4af37]/30 rounded-lg text-[#d4af37]/50 hover:text-[#d4af37] hover:border-[#d4af37] transition-all flex items-center justify-center gap-2"
+                            className="w-full py-4 border-2 border-dashed border-[var(--color-primary)]/30 rounded-lg text-[var(--color-primary)]/50 hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] transition-all flex items-center justify-center gap-2"
                         >
                             <Plus size={20} />
                             <span>Adicionar Pergunta</span>

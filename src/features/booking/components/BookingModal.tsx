@@ -1,103 +1,158 @@
-'use client';
+'use client'; // Rebuild
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar as CalendarIcon, Clock, Check, ChevronRight, ChevronLeft, User } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Clock, Check, ChevronRight, ChevronLeft, User, ShoppingBag } from 'lucide-react';
 import { Service } from '@/types/barbershop';
 import { useBooking } from '@/features/booking/hooks/useBooking';
 import { useLoyalty } from '@/features/loyalty/hooks/useLoyalty';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { Barber } from '@/features/team/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { Product } from '@/features/products/types';
 
 interface BookingModalProps {
     isOpen: boolean;
     onClose: () => void;
     barbershopId: string;
     services: Service[];
-    themeColor: string; // Hex color for buttons/highlights
+    themeColor: string;
 }
 
 export default function BookingModal({ isOpen, onClose, barbershopId, services, themeColor }: BookingModalProps) {
     const [step, setStep] = useState(1);
-    const [selectedService, setSelectedService] = useState<Service | null>(null);
+    const [selectedServices, setSelectedServices] = useState<Service[]>([]);
+    const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
     const [customerName, setCustomerName] = useState('');
     const [customerPhone, setCustomerPhone] = useState('');
+    const [barbers, setBarbers] = useState<Barber[]>([]);
+
+    // Products State
+    const [products, setProducts] = useState<Product[]>([]);
+    const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
 
     const [success, setSuccess] = useState(false);
-    const { createAppointment, fetchAvailableSlots, loading, error } = useBooking();
+    const { createAppointment, fetchAvailableSlots, loading } = useBooking();
     const { addPoints } = useLoyalty(barbershopId);
     const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+    const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
     // Reset state when modal opens/closes
     useEffect(() => {
         if (isOpen) {
             setStep(1);
             setSuccess(false);
-            setSelectedService(null);
+            setSelectedServices([]);
+            setSelectedBarber(null);
             setSelectedDate(undefined);
             setSelectedTime(null);
             setCustomerName('');
             setCustomerPhone('');
-        }
-    }, [isOpen]);
+            setSelectedProducts([]);
 
-    const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+            const fetchBarbers = async () => {
+                const q = query(collection(db, 'barbershops', barbershopId, 'professionals'), where('active', '==', true));
+                const snapshot = await getDocs(q);
+                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Barber[];
+                setBarbers(data);
+            };
+            fetchBarbers();
+
+            const fetchProducts = async () => {
+                const q = query(collection(db, 'products'), where('barbershopId', '==', barbershopId), where('active', '==', true));
+                const snapshot = await getDocs(q);
+                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Product[];
+                setProducts(data);
+            };
+            fetchProducts();
+        }
+    }, [isOpen, barbershopId]);
 
     // Fetch times when date is selected
     useEffect(() => {
-        if (selectedDate && selectedService) {
+        if (selectedDate && selectedServices.length > 0) {
+            const totalDuration = selectedServices.reduce((acc, s) => acc + parseInt(s.duration.replace(/\D/g, '') || '30'), 0);
             setIsLoadingSlots(true);
-            fetchAvailableSlots(selectedDate, barbershopId, selectedService.duration)
+            fetchAvailableSlots(selectedDate, barbershopId, totalDuration.toString())
                 .then(setAvailableTimes)
                 .finally(() => setIsLoadingSlots(false));
             setSelectedTime(null);
         }
-    }, [selectedDate, selectedService, barbershopId]);
+    }, [selectedDate, selectedServices, barbershopId]); // eslint-disable-line
+
+    const toggleProduct = (product: Product) => {
+        setSelectedProducts(prev => {
+            const exists = prev.find(p => p.id === product.id);
+            if (exists) return prev.filter(p => p.id !== product.id);
+            return [...prev, product];
+        });
+    };
+
+    const toggleService = (service: Service) => {
+        setSelectedServices(prev => {
+            const exists = prev.find(s => s.name === service.name);
+            if (exists) return prev.filter(s => s.name !== service.name);
+            return [...prev, service];
+        });
+    };
 
     const handleNext = () => {
-        if (step === 1 && selectedService) setStep(2);
-        if (step === 2 && selectedDate && selectedTime) setStep(3);
+        if (step === 1 && selectedServices.length > 0) setStep(2);
+        if (step === 2 && selectedBarber) setStep(3);
+        if (step === 3 && selectedDate && selectedTime) {
+            if (products.length === 0) setStep(5);
+            else setStep(4);
+        }
+        if (step === 4) setStep(5);
     };
 
     const handleBack = () => {
-        if (step > 1) setStep(step - 1);
+        if (step > 1) {
+            if (step === 5 && products.length === 0) setStep(3);
+            else setStep(step - 1);
+        }
     };
 
     const handleConfirm = async () => {
-        if (!selectedService || !selectedDate || !selectedTime || !customerName || !customerPhone) return;
+        if (selectedServices.length === 0 || !selectedBarber || !selectedDate || !selectedTime || !customerName || !customerPhone) return;
 
         try {
             await createAppointment({
                 barbershopId,
-                service: selectedService,
+                services: selectedServices,
                 date: selectedDate,
                 time: selectedTime,
                 name: customerName,
                 phone: customerPhone,
+                barberId: selectedBarber.id,
+                barberName: selectedBarber.name,
+                products: selectedProducts
             });
 
-            // Add loyalty points (fire and forget for now)
             try {
-                // Assuming 1 point per service for MVP
-                await addPoints(1, `Agendamento: ${selectedService.name}`);
+                // Loyalty: Add point per service or just 1? Assuming 1 per visit, but code was adding 1.
+                // Optionally add point per service: await addPoints(selectedServices.length, ...)
+                // Let's keep it simple: 1 visit = 1 point, or maybe 1 point.
+                await addPoints(1, `Agendamento: ${selectedServices.map(s => s.name).join(', ')}`);
             } catch (ignore) {
-                // If user not logged in or other error, just ignore for booking flow flow
                 console.log("Loyalty points skipped");
             }
 
             setSuccess(true);
         } catch (err) {
-            // Error is handled by useBooking hook state, but we can also show an alert
-            // The hook sets 'error' state, we can display that or use the alert below
             alert(err instanceof Error ? err.message : 'Erro ao agendar');
         }
     };
+
+    const servicesTotal = selectedServices.reduce((acc, s) => acc + s.price, 0);
+    const totalPrice = servicesTotal + selectedProducts.reduce((acc, p) => acc + p.price, 0);
 
     if (!isOpen) return null;
 
@@ -105,7 +160,6 @@ export default function BookingModal({ isOpen, onClose, barbershopId, services, 
         <AnimatePresence>
             {isOpen && (
                 <>
-                    {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -114,7 +168,6 @@ export default function BookingModal({ isOpen, onClose, barbershopId, services, 
                         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
                     />
 
-                    {/* Modal */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -162,48 +215,113 @@ export default function BookingModal({ isOpen, onClose, barbershopId, services, 
                                     <>
                                         {/* Progress Bar */}
                                         <div className="flex gap-2 mb-8">
-                                            {[1, 2, 3].map((i) => (
-                                                <div
-                                                    key={i}
-                                                    className={clsx(
-                                                        "h-1.5 flex-1 rounded-full transition-colors duration-300",
-                                                        i <= step ? "bg-black dark:bg-white" : "bg-gray-200 dark:bg-zinc-800"
-                                                    )}
-                                                    style={{ backgroundColor: i <= step ? themeColor : undefined }}
-                                                />
-                                            ))}
+                                            {[1, 2, 3, 4, 5].map((i) => {
+                                                if (products.length === 0 && i === 4) return null; // Skip Upsell dot if no products
+                                                if (products.length === 0 && i === 5) {
+                                                    // Render step 5 as the 4th dot if no products
+                                                    return (
+                                                        <div
+                                                            key={i}
+                                                            className={clsx(
+                                                                "h-1.5 flex-1 rounded-full transition-colors duration-300",
+                                                                5 <= step ? "bg-black dark:bg-white" : "bg-gray-200 dark:bg-zinc-800"
+                                                            )}
+                                                            style={{ backgroundColor: 5 <= step ? themeColor : undefined }}
+                                                        />
+                                                    )
+                                                }
+                                                const totalSteps = products.length > 0 ? 5 : 4;
+                                                if (i > totalSteps) return null;
+
+                                                let isActive = i <= step;
+                                                // Correction if on step 5 but products length 0 (should correspond to 4th dot)
+                                                if (products.length === 0 && step === 5) isActive = true;
+
+                                                return (
+                                                    <div
+                                                        key={i}
+                                                        className={clsx(
+                                                            "h-1.5 flex-1 rounded-full transition-colors duration-300",
+                                                            isActive ? "bg-black dark:bg-white" : "bg-gray-200 dark:bg-zinc-800"
+                                                        )}
+                                                        style={{ backgroundColor: isActive ? themeColor : undefined }}
+                                                    />
+                                                )
+                                            })}
                                         </div>
 
                                         {/* Step 1: Services */}
                                         {step === 1 && (
                                             <div className="space-y-3">
-                                                <h4 className="font-medium text-gray-500 dark:text-gray-400 mb-4">Selecione um serviço</h4>
-                                                {services.map((service) => (
+                                                <h4 className="font-medium text-gray-500 dark:text-gray-400 mb-4">Selecione os serviços</h4>
+                                                {services.map((service) => {
+                                                    const isSelected = selectedServices.some(s => s.name === service.name);
+                                                    return (
+                                                        <button
+                                                            key={service.name}
+                                                            onClick={() => toggleService(service)}
+                                                            className={clsx(
+                                                                "w-full p-4 rounded-xl border text-left transition-all hover:border-gray-400 dark:hover:border-zinc-600 flex justify-between items-center group",
+                                                                isSelected
+                                                                    ? "border-2 border-black dark:border-white bg-gray-50 dark:bg-zinc-800/50"
+                                                                    : "border-gray-200 dark:border-zinc-800"
+                                                            )}
+                                                            style={{ borderColor: isSelected ? themeColor : undefined }}
+                                                        >
+                                                            <div>
+                                                                <p className="font-bold text-gray-900 dark:text-white">{service.name}</p>
+                                                                <p className="text-sm text-gray-500">{service.duration}</p>
+                                                            </div>
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="font-medium text-gray-900 dark:text-white">
+                                                                    R$ {service.price.toFixed(2)}
+                                                                </span>
+                                                                {isSelected && (
+                                                                    <div className="bg-black text-white rounded-full p-1" style={{ backgroundColor: themeColor }}>
+                                                                        <Check size={14} />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+
+                                        {/* Step 2: Barber */}
+                                        {step === 2 && (
+                                            <div className="space-y-3">
+                                                <h4 className="font-medium text-gray-500 dark:text-gray-400 mb-4">Escolha o Profissional</h4>
+                                                {barbers.map((barber) => (
                                                     <button
-                                                        key={service.name}
-                                                        onClick={() => setSelectedService(service)}
+                                                        key={barber.id}
+                                                        onClick={() => setSelectedBarber(barber)}
                                                         className={clsx(
-                                                            "w-full p-4 rounded-xl border text-left transition-all hover:border-gray-400 dark:hover:border-zinc-600 flex justify-between items-center group",
-                                                            selectedService?.name === service.name
+                                                            "w-full p-4 rounded-xl border text-left transition-all hover:border-gray-400 dark:hover:border-zinc-600 flex items-center gap-4 group",
+                                                            selectedBarber?.id === barber.id
                                                                 ? "border-2 border-black dark:border-white bg-gray-50 dark:bg-zinc-800/50"
                                                                 : "border-gray-200 dark:border-zinc-800"
                                                         )}
-                                                        style={{ borderColor: selectedService?.name === service.name ? themeColor : undefined }}
+                                                        style={{ borderColor: selectedBarber?.id === barber.id ? themeColor : undefined }}
                                                     >
-                                                        <div>
-                                                            <p className="font-bold text-gray-900 dark:text-white">{service.name}</p>
-                                                            <p className="text-sm text-gray-500">{service.duration}</p>
+                                                        <div className="h-12 w-12 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center flex-shrink-0">
+                                                            {barber.photoUrl ? (
+                                                                <img src={barber.photoUrl} alt={barber.name} className="h-full w-full object-cover" />
+                                                            ) : (
+                                                                <User size={24} className="text-gray-400" />
+                                                            )}
                                                         </div>
-                                                        <span className="font-medium text-gray-900 dark:text-white">
-                                                            R$ {service.price.toFixed(2)}
-                                                        </span>
+                                                        <div>
+                                                            <p className="font-bold text-gray-900 dark:text-white">{barber.name}</p>
+                                                            <p className="text-sm text-gray-500">{barber.specialty}</p>
+                                                        </div>
                                                     </button>
                                                 ))}
                                             </div>
                                         )}
 
-                                        {/* Step 2: Date & Time */}
-                                        {step === 2 && (
+                                        {/* Step 3: Date */}
+                                        {step === 3 && (
                                             <div className="space-y-6">
                                                 <div className="flex justify-center">
                                                     <DayPicker
@@ -225,7 +343,6 @@ export default function BookingModal({ isOpen, onClose, barbershopId, services, 
                                                             <Clock size={16} />
                                                             Horários disponíveis
                                                         </h4>
-
                                                         {isLoadingSlots ? (
                                                             <div className="grid grid-cols-4 gap-2">
                                                                 {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
@@ -260,23 +377,92 @@ export default function BookingModal({ isOpen, onClose, barbershopId, services, 
                                             </div>
                                         )}
 
-                                        {/* Step 3: Info */}
-                                        {step === 3 && (
+                                        {/* Step 4: Upsell (Products) */}
+                                        {step === 4 && (
                                             <div className="space-y-4">
-                                                <div className="bg-gray-50 dark:bg-zinc-800/50 p-4 rounded-xl space-y-2 mb-6">
-                                                    <div className="flex justify-between text-sm">
-                                                        <span className="text-gray-500">Serviço</span>
-                                                        <span className="font-medium text-gray-900 dark:text-white">{selectedService?.name}</span>
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h4 className="font-bold text-lg text-gray-900 dark:text-white">Algo mais?</h4>
+                                                    <span className="text-sm text-gray-500">Adicione produtos ao seu agendamento</span>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    {products.map(product => {
+                                                        const isSelected = selectedProducts.find(p => p.id === product.id);
+                                                        return (
+                                                            <div
+                                                                key={product.id}
+                                                                onClick={() => toggleProduct(product)}
+                                                                className={clsx(
+                                                                    "border rounded-xl p-3 cursor-pointer transition-all hover:border-gray-400 dark:hover:border-zinc-600 relative overflow-hidden group",
+                                                                    isSelected ? "border-2 border-black dark:border-white bg-gray-50 dark:bg-zinc-800" : "border-gray-200 dark:border-zinc-800"
+                                                                )}
+                                                                style={{ borderColor: isSelected ? themeColor : undefined }}
+                                                            >
+                                                                {isSelected && (
+                                                                    <div className="absolute top-2 right-2 bg-black text-white rounded-full p-0.5" style={{ backgroundColor: themeColor }}>
+                                                                        <Check size={12} />
+                                                                    </div>
+                                                                )}
+                                                                <div className="h-24 bg-gray-100 rounded-lg mb-3 overflow-hidden flex items-center justify-center">
+                                                                    {product.imageUrl ? (
+                                                                        <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                                                                    ) : (
+                                                                        <ShoppingBag className="text-gray-400" />
+                                                                    )}
+                                                                </div>
+                                                                <h5 className="font-bold text-sm text-gray-900 dark:text-white truncate">{product.name}</h5>
+                                                                <p className="text-gray-500 text-sm">R$ {product.price.toFixed(2)}</p>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Step 5: Review */}
+                                        {step === 5 && (
+                                            <div className="space-y-4">
+                                                <div className="bg-gray-50 dark:bg-zinc-800/50 p-4 rounded-xl space-y-3 mb-6">
+                                                    <div className="space-y-2 border-b border-gray-200 dark:border-zinc-700 pb-3">
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-gray-500">Serviços ({selectedServices.length})</span>
+                                                            <div className="text-right">
+                                                                {selectedServices.map(s => (
+                                                                    <div key={s.name} className="font-medium text-gray-900 dark:text-white">
+                                                                        {s.name}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-gray-500">Profissional</span>
+                                                            <span className="font-medium text-gray-900 dark:text-white">{selectedBarber?.name}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-gray-500">Data e Hora</span>
+                                                            <span className="font-medium text-gray-900 dark:text-white">
+                                                                {selectedDate && format(selectedDate, "dd/MM", { locale: ptBR })} às {selectedTime}
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex justify-between text-sm">
-                                                        <span className="text-gray-500">Data e Hora</span>
-                                                        <span className="font-medium text-gray-900 dark:text-white">
-                                                            {selectedDate && format(selectedDate, "dd/MM", { locale: ptBR })} às {selectedTime}
+
+                                                    {selectedProducts.length > 0 && (
+                                                        <div className="space-y-2 border-b border-gray-200 dark:border-zinc-700 pb-3">
+                                                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Produtos</span>
+                                                            {selectedProducts.map(p => (
+                                                                <div key={p.id} className="flex justify-between text-sm">
+                                                                    <span className="text-gray-500">{p.name}</span>
+                                                                    <span className="font-medium text-gray-900 dark:text-white">R$ {p.price.toFixed(2)}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex justify-between text-base pt-1">
+                                                        <span className="font-bold text-gray-900 dark:text-white">Total</span>
+                                                        <span className="font-bold text-gray-900 dark:text-white text-lg">
+                                                            R$ {totalPrice.toFixed(2)}
                                                         </span>
-                                                    </div>
-                                                    <div className="flex justify-between text-sm">
-                                                        <span className="text-gray-500">Valor</span>
-                                                        <span className="font-medium text-gray-900 dark:text-white">R$ {selectedService?.price.toFixed(2)}</span>
                                                     </div>
                                                 </div>
 
@@ -328,14 +514,18 @@ export default function BookingModal({ isOpen, onClose, barbershopId, services, 
                                         Voltar
                                     </button>
 
-                                    {step < 3 ? (
+                                    {step < 5 ? (
                                         <button
                                             onClick={handleNext}
-                                            disabled={(step === 1 && !selectedService) || (step === 2 && (!selectedDate || !selectedTime))}
+                                            disabled={
+                                                (step === 1 && selectedServices.length === 0) ||
+                                                (step === 2 && !selectedBarber) ||
+                                                (step === 3 && (!selectedDate || !selectedTime))
+                                            }
                                             className="px-6 py-2 rounded-lg font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                             style={{ backgroundColor: themeColor }}
                                         >
-                                            Próximo
+                                            {step === 3 && products.length === 0 ? 'Revisar' : (step === 4 ? 'Revisar' : 'Próximo')}
                                             <ChevronRight size={18} />
                                         </button>
                                     ) : (

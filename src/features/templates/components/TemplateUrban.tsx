@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Phone, Instagram, ArrowRight, Scissors, Info } from 'lucide-react';
+import { MapPin, Phone, Instagram, ArrowRight, Scissors, Info, Menu, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { BarbershopData } from '@/types/barbershop';
 import BookingModal from '@/features/booking/components/BookingModal';
@@ -12,6 +12,7 @@ import ReviewsSection from '@/features/reviews/components/ReviewsSection';
 import { useTemplateEditor } from '@/features/templates/hooks/useTemplateEditor';
 import { useDemoStore } from '@/store/useDemoStore';
 import { Toast } from '@/components/ui/Toast';
+import ProductsSection from './ProductsSection';
 
 interface TemplateProps {
     data: BarbershopData;
@@ -21,9 +22,21 @@ interface TemplateProps {
 
 export default function TemplateUrban({ data, isEditing = false, onUpdate }: TemplateProps) {
     const [isBookingOpen, setIsBookingOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     const { showBooking, showMap, enablePremiumEffects } = useDemoStore();
-    const { content, services, gallery } = data;
+    const { services, gallery } = data;
+    // Handle root vs content legacy structure and defaults
+    const content = data.content || {};
+    const legacyContent = content as any;
+    const name = data.name || legacyContent.name || "Minha Barbearia";
+    const contact = data.contact || legacyContent.contact || { phone: "", whatsapp: "", address: "", instagram: "" };
+    const colors = data.colors || legacyContent.colors || {
+        primary: '#ef4444',
+        secondary: '#1f2937',
+        background: '#ffffff',
+        text: '#000000'
+    };
 
     const { updateContent, updateContact, updateService, updateGallery } = useTemplateEditor({
         data,
@@ -35,17 +48,17 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
         if (showBooking) {
             setIsBookingOpen(true);
         } else {
-            const message = encodeURIComponent(`Olá, gostaria de agendar um horário na ${content.name}.`);
-            window.open(`https://wa.me/${content.contact.whatsapp}?text=${message}`, '_blank');
+            const message = encodeURIComponent(`Olá, gostaria de agendar um horário na ${name}.`);
+            window.open(`https://wa.me/${contact.whatsapp}?text=${message}`, '_blank');
         }
     };
 
     // CSS Variables Injection
     const cssVariables = {
-        '--color-primary': content.colors.primary,
-        '--color-secondary': content.colors.secondary,
-        '--color-bg': content.colors.background || '#1a1a1a', // Fallback for existing data
-        '--color-text': content.colors.text || '#ffffff',       // Fallback
+        '--color-primary': colors.primary,
+        '--color-secondary': colors.secondary,
+        '--color-bg': colors.background || '#1a1a1a', // Fallback for existing data
+        '--color-text': colors.text || '#ffffff',       // Fallback
     } as React.CSSProperties;
 
     // --- SUBCOMPONENTS FOR CLEANER CODE ---
@@ -105,8 +118,8 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
                             <EditableText
                                 as="span"
                                 isEditing={isEditing}
-                                value={content.name}
-                                onChange={(val) => updateContent('name', val)}
+                                value={name}
+                                onChange={(val) => onUpdate && onUpdate({ ...data, name: val })}
                             />
                         </div>
                     </div>
@@ -117,10 +130,58 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
                         <a href="#location" className="hover:text-white transition-colors">LOCAL</a>
                     </div>
 
-                    <PrimaryButton onClick={handleBookingClick} className="!py-2 !px-6 text-sm">
-                        Agendar
-                    </PrimaryButton>
+                    <div className="hidden md:block">
+                        <PrimaryButton onClick={handleBookingClick} className="!py-2 !px-6 text-sm">
+                            Agendar
+                        </PrimaryButton>
+                    </div>
+
+                    <button
+                        className="md:hidden text-white p-2"
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    >
+                        {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                    </button>
                 </div>
+
+                {/* Mobile Menu Overlay */}
+                <AnimatePresence>
+                    {isMobileMenuOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="md:hidden bg-black/95 border-b border-white/10 overflow-hidden"
+                        >
+                            <div className="flex flex-col p-6 gap-6 text-center">
+                                <a
+                                    href="#about"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="text-xl font-bold text-gray-400 hover:text-white tracking-widest uppercase py-2"
+                                >
+                                    Sobre
+                                </a>
+                                <a
+                                    href="#services"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="text-xl font-bold text-gray-400 hover:text-white tracking-widest uppercase py-2"
+                                >
+                                    Serviços
+                                </a>
+                                <a
+                                    href="#location"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="text-xl font-bold text-gray-400 hover:text-white tracking-widest uppercase py-2"
+                                >
+                                    Local
+                                </a>
+                                <PrimaryButton onClick={() => { handleBookingClick(); setIsMobileMenuOpen(false); }} className="w-full">
+                                    Agendar Agora
+                                </PrimaryButton>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </nav>
 
             {/* Hero Section */}
@@ -141,16 +202,17 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
                         initial={{ x: -50, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                         transition={{ duration: 1, ease: "easeOut" }}
+                        className="pt-10 md:pt-0"
                     >
                         <div className="flex items-center gap-4 mb-6">
                             <div className="h-px w-12 bg-[#00F0FF]"></div>
                             <span className="text-[#00F0FF] font-bold tracking-[0.2em] text-sm uppercase">Desde 2024</span>
                         </div>
 
-                        <h1 className="text-7xl md:text-9xl font-black leading-[0.85] uppercase tracking-tighter mb-8">
+                        <h1 className="text-5xl md:text-9xl font-black leading-[0.9] md:leading-[0.85] uppercase tracking-tighter mb-8">
                             <span className="block text-white">Estilo</span>
                             <span className="block text-white">Que</span>
-                            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#00F0FF] to-white" style={{ WebkitTextStroke: '2px #00F0FF', textShadow: '0 0 30px rgba(0,240,255,0.5)' }}>
+                            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#00F0FF] to-white" style={{ WebkitTextStroke: '1px #00F0FF', textShadow: '0 0 30px rgba(0,240,255,0.5)' }}>
                                 Eletriza
                             </span>
                         </h1>
@@ -161,7 +223,7 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
                                 isEditing={isEditing}
                                 value={content.description}
                                 onChange={(val) => updateContent('description', val)}
-                                className="text-xl text-gray-300 font-light leading-relaxed"
+                                className="text-lg md:text-xl text-gray-300 font-light leading-relaxed"
                             />
                         </div>
 
@@ -184,25 +246,61 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
             </header>
 
             {/* Services Section */}
-            <section id="services" className="py-32 bg-[var(--color-bg)] relative">
+            <section id="services" className="py-20 md:py-32 bg-[var(--color-bg)] relative">
                 {/* Grid Background */}
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
 
                 <div className="container mx-auto px-6 relative z-10">
-                    <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
+                    <div className="flex flex-col md:flex-row justify-between items-end mb-12 md:mb-20 gap-8">
                         <div>
-                            <h2 className="text-6xl md:text-8xl font-black uppercase text-[var(--color-text)] leading-none">
-                                Nossos<br />
+                            <h2 className="text-5xl md:text-8xl font-black uppercase text-[var(--color-text)] leading-none">
+                                <EditableText
+                                    as="span"
+                                    isEditing={isEditing}
+                                    value={content.services_title?.split(' ')[0] || "Nossos"}
+                                    onChange={(val) => {
+                                        // Simple split handling or just full update? 
+                                        // To keep complex layout, we might need separate fields or just accept simple text.
+                                        // Let's Simplify: Just make it fully editable as one block if possible or split.
+                                        // User wants "Nossos" and "Serviços". Let's assume title is "Nossos Serviços" and we split by space for styling?
+                                        // Or better, let's use `services_title` for the first part and `services_subtitle` for the colored part?
+                                        // In Classic: title="Nossos Serviços", subtitle="Experiência..."
+                                        // Here: "Nossos" (white) "Serviços" (colored).
+                                        // Let's use `services_title` for "Nossos" and `services_subtitle` for "Serviços" for this template specifically, 
+                                        // or just add `services_title_highlight`?
+                                        // Let's blindly use `services_title` for the whole thing and let them edit it as one string?
+                                        // No, the design splits them.
+                                        // Let's use `services_title` for the top part and `services_subtitle` for the highlighted part.
+                                        updateContent('services_title', val);
+                                    }}
+                                    className="block"
+                                />
                                 <span className="text-transparent bg-clip-text bg-gradient-to-b from-[var(--color-secondary)] to-[var(--color-secondary)]" style={{ textShadow: '0 0 20px rgba(255,94,0,0.3)' }}>
-                                    Serviços
+                                    <EditableText
+                                        as="span"
+                                        isEditing={isEditing}
+                                        value={content.services_subtitle || "Serviços"}
+                                        onChange={(val) => updateContent('services_subtitle', val)}
+                                    />
                                 </span>
                             </h2>
                         </div>
                         <div className="max-w-md text-gray-400 mb-4">
-                            <p>Experiência completa de barbearia com produtos premium, toalha quente e atendimento de alta performance.</p>
+                            <EditableText
+                                as="p"
+                                isEditing={isEditing}
+                                value={content.services_description || "Experiência completa de barbearia com produtos premium, toalha quente e atendimento de alta performance."}
+                                onChange={(val) => updateContent('services_description', val)}
+                                multiline
+                            />
                         </div>
                         <a href="#" className="hidden md:block text-[var(--color-primary)] border-b border-[var(--color-primary)] pb-1 hover:text-[var(--color-text)] hover:border-[var(--color-text)] transition-colors uppercase text-sm font-bold tracking-widest">
-                            Ver Menu Completo
+                            <EditableText
+                                as="span"
+                                isEditing={isEditing}
+                                value={content.cta_text || "Ver Menu Completo"}
+                                onChange={(val) => updateContent('cta_text', val)}
+                            />
                         </a>
                     </div>
 
@@ -214,7 +312,7 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ delay: index * 0.2 }}
-                                className="group relative h-[500px] overflow-hidden bg-[#111] border border-[var(--color-text)]/10"
+                                className="group relative h-[400px] md:h-[500px] overflow-hidden bg-[#111] border border-[var(--color-text)]/10"
                             >
                                 {/* We can use a placeholder or specific image for each service type if available, otherwise reuse gallery or hero */}
                                 <div className="absolute inset-0">
@@ -228,22 +326,22 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
 
                                 <div className="absolute bottom-0 left-0 w-full p-8">
                                     <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                                        <div className="flex justify-between items-end">
+                                        <div className="flex justify-between items-end gap-4">
                                             <EditableText
                                                 as="h3"
                                                 isEditing={isEditing}
                                                 value={service.name}
                                                 onChange={(val) => updateService(index, 'name', val)}
-                                                className="text-4xl font-black uppercase text-[var(--color-text)] mb-2 leading-none"
+                                                className="text-2xl md:text-3xl font-black uppercase text-[var(--color-text)] mb-1 leading-tight break-words max-w-[70%]"
                                             />
-                                            <div className="text-right">
-                                                <span className="text-sm font-bold text-[var(--color-primary)] block mb-1">R$</span>
+                                            <div className="flex items-baseline gap-1 flex-shrink-0">
+                                                <span className="text-sm md:text-base font-bold text-[var(--color-primary)]">R$</span>
                                                 <EditableText
                                                     as="span"
                                                     isEditing={isEditing}
                                                     value={service.price.toString()}
                                                     onChange={(val) => updateService(index, 'price', parseFloat(val) || 0)}
-                                                    className="text-4xl font-black text-[var(--color-text)] leading-none"
+                                                    className="text-2xl md:text-3xl font-black text-[var(--color-text)] leading-none"
                                                 />
                                             </div>
                                         </div>
@@ -256,32 +354,110 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
             </section>
 
             {/* About / USP Section */}
-            <section id="about" className="py-32 bg-black text-[var(--color-text)] relative flex items-center">
-                <div className="container mx-auto px-6 grid md:grid-cols-2 gap-20 items-center">
+            <section id="about" className="py-20 md:py-32 bg-black text-[var(--color-text)] relative flex items-center">
+                <div className="container mx-auto px-6 grid md:grid-cols-2 gap-12 md:gap-20 items-center">
                     <div>
-                        <h2 className="text-6xl md:text-7xl font-black uppercase leading-[0.9] mb-12">
-                            Não<br />Aceitamos<br />
-                            <span className="text-[var(--color-primary)]">O Básico.</span>
+                        <h2 className="text-5xl md:text-7xl font-black uppercase leading-[0.9] mb-8 md:mb-12">
+                            <EditableText
+                                as="span"
+                                isEditing={isEditing}
+                                value={content.about_title_top || "Não"}
+                                onChange={(val) => updateContent('about_title_top', val)}
+                                className="block"
+                            />
+                            <EditableText
+                                as="span"
+                                isEditing={isEditing}
+                                value={content.about_title_middle || "Aceitamos"}
+                                onChange={(val) => updateContent('about_title_middle', val)}
+                                className="block"
+                            />
+                            <span className="text-[var(--color-primary)]">
+                                <EditableText
+                                    as="span"
+                                    isEditing={isEditing}
+                                    value={content.about_title_bottom || "O Básico."}
+                                    onChange={(val) => updateContent('about_title_bottom', val)}
+                                />
+                            </span>
                         </h2>
 
                         <div className="space-y-8 text-lg text-gray-400">
-                            <p className="leading-relaxed">
-                                Na {content.name}, entendemos que o seu estilo é a sua assinatura.
-                                Nossos barbeiros são artistas treinados nas técnicas mais modernas de visagismo e corte.
-                            </p>
+                            <div className="leading-relaxed">
+                                <EditableText
+                                    as="p"
+                                    isEditing={isEditing}
+                                    value={content.about_description || `Na ${name}, entendemos que o seu estilo é a sua assinatura. Nossos barbeiros são artistas treinados nas técnicas mais modernas de visagismo e corte.`}
+                                    onChange={(val) => updateContent('about_description', val)}
+                                    multiline
+                                />
+                            </div>
 
                             <ul className="space-y-6 mt-8">
-                                {[
-                                    "Ambiente Climatizado e Som de Alta Qualidade",
-                                    "Cerveja Gelada por Conta da Casa",
-                                    "Estacionamento Exclusivo",
-                                    "Agendamento Online Sem Fila"
-                                ].map((item, i) => (
-                                    <li key={i} className="flex items-center gap-4">
-                                        <div className="w-2 h-2 rounded-full bg-[var(--color-secondary)]"></div>
-                                        <span className="font-bold text-[var(--color-text)] tracking-wide text-sm md:text-base uppercase">{item}</span>
-                                    </li>
-                                ))}
+                                <ul className="space-y-6 mt-8">
+                                    {(content.features || [
+                                        "Ambiente Climatizado e Som de Alta Qualidade",
+                                        "Cerveja Gelada por Conta da Casa",
+                                        "Estacionamento Exclusivo",
+                                        "Agendamento Online Sem Fila"
+                                    ]).map((item, i) => (
+                                        <li key={i} className="flex items-center gap-4 group/item relative">
+                                            <div className="w-2 h-2 rounded-full bg-[var(--color-secondary)] flex-shrink-0"></div>
+                                            <EditableText
+                                                as="span"
+                                                isEditing={isEditing}
+                                                value={item}
+                                                onChange={(val) => {
+                                                    const newFeatures = [...(content.features || [
+                                                        "Ambiente Climatizado e Som de Alta Qualidade",
+                                                        "Cerveja Gelada por Conta da Casa",
+                                                        "Estacionamento Exclusivo",
+                                                        "Agendamento Online Sem Fila"
+                                                    ])];
+                                                    newFeatures[i] = val;
+                                                    updateContent('features', newFeatures);
+                                                }}
+                                                className="font-bold text-[var(--color-text)] tracking-wide text-xs md:text-base uppercase w-full"
+                                            />
+                                            {isEditing && (
+                                                <button
+                                                    onClick={() => {
+                                                        const newFeatures = [...(content.features || [
+                                                            "Ambiente Climatizado e Som de Alta Qualidade",
+                                                            "Cerveja Gelada por Conta da Casa",
+                                                            "Estacionamento Exclusivo",
+                                                            "Agendamento Online Sem Fila"
+                                                        ])];
+                                                        newFeatures.splice(i, 1);
+                                                        updateContent('features', newFeatures);
+                                                    }}
+                                                    className="opacity-0 group-hover/item:opacity-100 text-red-500 hover:text-red-400 p-1"
+                                                    title="Remover item"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            )}
+                                        </li>
+                                    ))}
+                                    {isEditing && (
+                                        <li className="pt-2">
+                                            <button
+                                                onClick={() => {
+                                                    const currentFeatures = content.features || [
+                                                        "Ambiente Climatizado e Som de Alta Qualidade",
+                                                        "Cerveja Gelada por Conta da Casa",
+                                                        "Estacionamento Exclusivo",
+                                                        "Agendamento Online Sem Fila"
+                                                    ];
+                                                    updateContent('features', [...currentFeatures, "Novo Item"]);
+                                                }}
+                                                className="text-xs text-[var(--color-primary)] hover:underline flex items-center gap-1"
+                                            >
+                                                + Adicionar Item
+                                            </button>
+                                        </li>
+                                    )}
+                                </ul>
                             </ul>
                         </div>
 
@@ -293,14 +469,21 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
                     <div className="relative">
                         <div className="relative aspect-square border border-[var(--color-text)]/10 bg-[#0a0a0a] p-12 flex items-center justify-center">
                             {/* Decorative Corner */}
-                            <div className="absolute top-0 right-0 w-32 h-32 border-t-4 border-r-4 border-[var(--color-primary)]" />
-                            <div className="absolute bottom-0 left-0 w-24 h-24 border-b-4 border-l-4 border-[var(--color-secondary)]" />
+                            <div className="absolute top-0 right-0 w-20 md:w-32 h-20 md:h-32 border-t-4 border-r-4 border-[var(--color-primary)]" />
+                            <div className="absolute bottom-0 left-0 w-16 md:w-24 h-16 md:h-24 border-b-4 border-l-4 border-[var(--color-secondary)]" />
 
-                            <Scissors size={120} className="text-[var(--color-text)]/20" strokeWidth={1} />
+                            <Scissors size={80} className="text-[var(--color-text)]/20 md:w-[120px] md:h-[120px]" strokeWidth={1} />
                         </div>
                     </div>
                 </div>
             </section>
+
+            {/* PRODUCTS SECTION (Optional) */}
+            {content.showProductsSection && (
+                <section className="bg-black py-20 border-t border-white/5">
+                    <ProductsSection products={data.products || []} />
+                </section>
+            )}
 
             {/* Footer / Location */}
             {showMap && (
@@ -309,7 +492,7 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
                         <div className="grid md:grid-cols-2 gap-16 mb-24">
                             <div>
                                 <h2 className="text-4xl font-black text-[var(--color-text)] uppercase mb-8">
-                                    <span className="text-[var(--color-primary)]">⚡</span> {content.name}
+                                    <span className="text-[var(--color-primary)]">⚡</span> {name}
                                 </h2>
                                 <p className="text-gray-400 max-w-sm mb-12">
                                     O ponto de encontro para quem busca excelência, estilo e uma experiência única.
@@ -320,8 +503,8 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
                                         <EditableText
                                             as="span"
                                             isEditing={isEditing}
-                                            value={content.contact.address}
-                                            onChange={(val) => updateContact('address', val)}
+                                            value={contact.address}
+                                            onChange={(val) => onUpdate && onUpdate({ ...data, contact: { ...contact, address: val } })}
                                         />
                                     </div>
                                     <div className="flex items-center gap-4 text-gray-300">
@@ -329,8 +512,8 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
                                         <EditableText
                                             as="span"
                                             isEditing={isEditing}
-                                            value={content.contact.phone}
-                                            onChange={(val) => updateContact('phone', val)}
+                                            value={contact.phone}
+                                            onChange={(val) => onUpdate && onUpdate({ ...data, contact: { ...contact, phone: val } })}
                                         />
                                     </div>
                                     <div className="flex items-center gap-4 text-gray-300">
@@ -340,8 +523,8 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
                                             <EditableText
                                                 as="span"
                                                 isEditing={isEditing}
-                                                value={content.contact.instagram ?? "barbearia"}
-                                                onChange={(val) => updateContact('instagram', val)}
+                                                value={contact.instagram ?? "barbearia"}
+                                                onChange={(val) => onUpdate && onUpdate({ ...data, contact: { ...contact, instagram: val } })}
                                             />
                                         </div>
                                     </div>
@@ -358,7 +541,7 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
                         </div>
 
                         <div className="border-t border-white/5 pt-8 text-center text-gray-600 text-sm">
-                            <p>&copy; {new Date().getFullYear()} {content.name}. Todos os direitos reservados.</p>
+                            <p>&copy; {new Date().getFullYear()} {name}. Todos os direitos reservados.</p>
                         </div>
                     </div>
                 </footer>

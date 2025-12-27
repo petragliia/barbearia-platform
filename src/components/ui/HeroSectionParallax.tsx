@@ -4,7 +4,7 @@ import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import EditableText from '@/components/ui/EditableText';
-import ImageUploader from '@/components/ui/ImageUploader';
+import EditableImage from '@/components/ui/EditableImage';
 
 interface HeroSectionParallaxProps {
     name: string;
@@ -43,17 +43,15 @@ export default function HeroSectionParallax({
                 style={{ y: backgroundY }}
                 className="absolute inset-0 z-0 will-change-transform"
             >
-                <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/90 z-10" />
-                <img
+                <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/90 z-10 pointer-events-none" />
+                <EditableImage
                     src={heroImage}
                     alt="Hero Background"
+                    onUpload={(url) => onUpdate('hero_image', url)}
+                    isEditing={isEditing}
                     className="w-full h-[120%] object-cover opacity-80"
+                    containerClassName="w-full h-full"
                 />
-                {isEditing && (
-                    <div className="absolute inset-0 z-20">
-                        <ImageUploader onUpload={(url) => onUpdate('hero_image', url)} />
-                    </div>
-                )}
             </motion.div>
 
             {/* Content */}
@@ -66,7 +64,7 @@ export default function HeroSectionParallax({
                     className="will-change-transform"
                 >
                     <div className="mb-6 flex justify-center">
-                        <div className="w-24 h-1 bg-[#d4af37]" />
+                        <div className="w-24 h-1 bg-[var(--color-primary)]" />
                     </div>
 
                     <div className="relative inline-block mb-6">
@@ -75,7 +73,7 @@ export default function HeroSectionParallax({
                             isEditing={isEditing}
                             value={name}
                             onChange={(val) => onUpdate('name', val)}
-                            className="text-6xl md:text-8xl font-serif font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 via-yellow-200 to-yellow-600 bg-[length:200%_auto] animate-shine"
+                            className="text-5xl md:text-8xl font-serif font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-[var(--color-primary)] via-white to-[var(--color-primary)] bg-[length:200%_auto] animate-shine"
                         />
                     </div>
 
@@ -88,13 +86,13 @@ export default function HeroSectionParallax({
                     />
 
                     <motion.button
-                        whileHover={{ scale: 1.05, backgroundColor: "#fff", color: "#000" }}
+                        whileHover={{ scale: 1.05, filter: "brightness(1.1)" }}
                         whileTap={{ scale: 0.95 }}
                         onClick={onBooking}
                         disabled={isEditing}
                         className={`
-                            bg-[#d4af37] text-black px-10 py-4 text-sm font-bold uppercase tracking-[0.2em] 
-                            transition-all duration-300 border border-[#d4af37] shadow-[0_0_20px_rgba(212,175,55,0.3)]
+                            bg-[var(--color-primary)] text-black px-10 py-4 text-sm font-bold uppercase tracking-[0.2em] 
+                            transition-all duration-300 border border-[var(--color-primary)] shadow-[0_0_20px_rgba(255,255,255,0.1)]
                             ${isEditing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                         `}
                     >

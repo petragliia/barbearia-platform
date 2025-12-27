@@ -14,14 +14,12 @@ export function useTemplateEditor({ data, onUpdate }: UseTemplateEditorProps) {
         });
     };
 
-    const updateContact = (field: keyof typeof data.content.contact, value: string) => {
+    // Deprecated: use direct onUpdate for contact
+    const updateContact = (field: keyof typeof data.contact, value: string) => {
         if (!onUpdate) return;
         onUpdate({
             ...data,
-            content: {
-                ...data.content,
-                contact: { ...data.content.contact, [field]: value }
-            }
+            contact: { ...data.contact, [field]: value }
         });
     };
 

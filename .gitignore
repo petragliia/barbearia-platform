@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local dev files
+test-results/
+playwright-report/
+backup/
+n8n_local/
+temp-app/
+.antigravityignore
