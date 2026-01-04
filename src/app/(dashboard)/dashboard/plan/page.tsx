@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, X, CreditCard, Rocket, Crown, Zap } from 'lucide-react';
+import { Check, X, Rocket, Crown, Zap } from 'lucide-react';
 import { useSubscription } from '@/features/subscription/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';

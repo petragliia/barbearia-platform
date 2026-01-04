@@ -1,6 +1,6 @@
 import { useWizardStore } from '@/store/useWizardStore';
 import { ADDONS } from '@/config/addons';
-import { Check, Plus } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
 

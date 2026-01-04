@@ -20,7 +20,6 @@ export default function PromotionsPageClient() {
     const { can, loading: permLoading } = usePermission();
 
     // Feature Gating Checks
-    const [isAllowed, setIsAllowed] = useState(false);
 
     // Data
     const [promotions, setPromotions] = useState<Promotion[]>([]);

@@ -3,9 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Check, Copy, MessageSquare, Send, Zap, Crown, Megaphone } from 'lucide-react';
+import { Crown } from 'lucide-react';
 import MarketingStats from '@/features/marketing/components/MarketingStats';
 import AutomationConfig from '@/features/marketing/components/AutomationConfig';
 import LoyaltyDashboardConfig from '@/features/loyalty/components/LoyaltyDashboardConfig';

@@ -6,7 +6,7 @@ interface UseTemplateEditorProps {
 }
 
 export function useTemplateEditor({ data, onUpdate }: UseTemplateEditorProps) {
-    const updateContent = (field: keyof typeof data.content, value: any) => {
+    const updateContent = (field: keyof typeof data.content, value: string | number | boolean | object) => {
         if (!onUpdate) return;
         onUpdate({
             ...data,
@@ -23,7 +23,7 @@ export function useTemplateEditor({ data, onUpdate }: UseTemplateEditorProps) {
         });
     };
 
-    const updateService = (index: number, field: 'name' | 'price' | 'duration', value: any) => {
+    const updateService = (index: number, field: 'name' | 'price' | 'duration', value: string | number) => {
         if (!onUpdate) return;
         const newServices = [...data.services];
         newServices[index] = { ...newServices[index], [field]: value };

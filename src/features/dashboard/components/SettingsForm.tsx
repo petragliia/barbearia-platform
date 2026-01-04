@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/features/auth/context/AuthContext';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -24,7 +23,7 @@ export default function SettingsForm({ user }: SettingsFormProps) {
     const [success, setSuccess] = useState(false);
 
     // Default to 'general' tab
-    const [activeTab, setActiveTab] = useState("general");
+    const [_activeTab, setActiveTab] = useState("general");
 
     const [formData, setFormData] = useState({
         name: '',
@@ -45,13 +44,13 @@ export default function SettingsForm({ user }: SettingsFormProps) {
                 if (docSnap.exists()) {
                     const data = docSnap.data() as BarbershopData;
                     setFormData({
-                        name: data.content.name,
-                        description: data.content.description,
-                        phone: data.content.contact.phone,
-                        whatsapp: data.content.contact.whatsapp,
-                        address: data.content.contact.address,
-                        instagram: data.content.contact.instagram || '',
-                        hero_image: data.content.hero_image || ''
+                        name: data.name,
+                        description: data.content?.description || '',
+                        phone: data.contact?.phone || '',
+                        whatsapp: data.contact?.whatsapp || '',
+                        address: data.contact?.address || '',
+                        instagram: data.contact?.instagram || '',
+                        hero_image: data.content?.hero_image || ''
                     });
                 }
             } catch (error) {
@@ -72,12 +71,12 @@ export default function SettingsForm({ user }: SettingsFormProps) {
             const docRef = doc(db, 'barbershops', user.uid);
 
             await updateDoc(docRef, {
-                'content.name': formData.name,
+                'name': formData.name,
                 'content.description': formData.description,
-                'content.contact.phone': formData.phone,
-                'content.contact.whatsapp': formData.whatsapp,
-                'content.contact.address': formData.address,
-                'content.contact.instagram': formData.instagram,
+                'contact.phone': formData.phone,
+                'contact.whatsapp': formData.whatsapp,
+                'contact.address': formData.address,
+                'contact.instagram': formData.instagram,
                 'content.hero_image': formData.hero_image
             });
 

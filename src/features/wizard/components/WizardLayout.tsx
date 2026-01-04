@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useWizardStore } from '@/store/useWizardStore';
+import { BarbershopData } from '@/types/barbershop';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { createCheckoutSession } from '@/lib/services/paymentService';
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
@@ -53,9 +54,11 @@ function WizardContent() {
                 if (!currentUser) throw new Error('Falha na autenticação');
 
                 // Map store data to full BarbershopData structure
-                const fullData: any = {
+                const fullData = {
+                    id: currentUser.uid,
+                    ownerId: currentUser.uid,
                     slug: barbershopData.slug,
-                    template_id: selectedTemplate,
+                    template_id: selectedTemplate || 'classic',
                     name: barbershopData.name,
                     isPublished: false, // Default: Site starts offline
                     colors: getTemplateColors(selectedTemplate),
@@ -73,7 +76,7 @@ function WizardContent() {
                         description: 'A melhor barbearia da região.', // Default
                         hero_image: getTemplateImage(selectedTemplate),
                     },
-                };
+                } as unknown as BarbershopData;
 
                 // Initiate Payment Flow
                 await createCheckoutSession(fullData, currentUser.uid, selectedAddons, selectedPlan);

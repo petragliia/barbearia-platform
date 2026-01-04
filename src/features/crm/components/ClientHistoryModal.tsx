@@ -1,7 +1,7 @@
 
 import { Client } from '../types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Calendar, Clock, DollarSign, User, Phone, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, Clock, User, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 

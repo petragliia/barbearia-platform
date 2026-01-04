@@ -2,17 +2,18 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Phone, Instagram, ArrowRight, Scissors, Info, Menu, X } from 'lucide-react';
+import { Scissors, Menu, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { BarbershopData } from '@/types/barbershop';
 import BookingModal from '@/features/booking/components/BookingModal';
 import EditableText from '@/components/ui/EditableText';
 import ImageUploader from '@/components/ui/ImageUploader';
-import ReviewsSection from '@/features/reviews/components/ReviewsSection';
 import { useTemplateEditor } from '@/features/templates/hooks/useTemplateEditor';
 import { useDemoStore } from '@/store/useDemoStore';
 import { Toast } from '@/components/ui/Toast';
 import ProductsSection from './ProductsSection';
+import Footer from '@/features/marketing/components/Footer';
+import FAQSection from '@/features/marketing/components/FAQSection';
 
 interface TemplateProps {
     data: BarbershopData;
@@ -20,15 +21,37 @@ interface TemplateProps {
     onUpdate?: (data: BarbershopData) => void;
 }
 
+const PrimaryButton = ({ children, onClick, className, disabled }: { children: React.ReactNode, onClick: () => void, className?: string, disabled?: boolean }) => (
+    <button
+        onClick={onClick}
+        disabled={disabled}
+        className={clsx(
+            "bg-[var(--color-primary)] text-black font-black uppercase tracking-wider py-4 px-8 hover:bg-white transition-all duration-300 transform hover:-translate-y-1 shadow-[0_0_20px_rgba(0,240,255,0.3)] hover:shadow-[0_0_40px_rgba(255,255,255,0.5)]",
+            className
+        )}
+    >
+        {children}
+    </button>
+);
+
+const OutlinedButton = ({ children, onClick }: { children: React.ReactNode, onClick?: () => void }) => (
+    <button
+        onClick={onClick}
+        className="border border-white/20 text-white font-bold uppercase tracking-wider py-4 px-8 hover:bg-white hover:text-black transition-all duration-300"
+    >
+        {children}
+    </button>
+);
+
 export default function TemplateUrban({ data, isEditing = false, onUpdate }: TemplateProps) {
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
-    const { showBooking, showMap, enablePremiumEffects } = useDemoStore();
+    const { showBooking, showMap } = useDemoStore();
     const { services, gallery } = data;
     // Handle root vs content legacy structure and defaults
     const content = data.content || {};
-    const legacyContent = content as any;
+    const legacyContent = content as Record<string, any>;
     const name = data.name || legacyContent.name || "Minha Barbearia";
     const contact = data.contact || legacyContent.contact || { phone: "", whatsapp: "", address: "", instagram: "" };
     const colors = data.colors || legacyContent.colors || {
@@ -38,7 +61,7 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
         text: '#000000'
     };
 
-    const { updateContent, updateContact, updateService, updateGallery } = useTemplateEditor({
+    const { updateContent, updateService } = useTemplateEditor({
         data,
         onUpdate
     });
@@ -63,34 +86,6 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
 
     // --- SUBCOMPONENTS FOR CLEANER CODE ---
 
-    const SectionHeader = ({ title, subtitle }: { title: string, subtitle: string }) => (
-        <div className="mb-12">
-            <h3 className="text-[var(--color-primary)] font-bold tracking-widest text-sm mb-2 uppercase">{subtitle}</h3>
-            <h2 className="text-4xl md:text-5xl font-black text-[var(--color-text)] uppercase tracking-tighter">{title}</h2>
-        </div>
-    );
-
-    const PrimaryButton = ({ children, onClick, className }: { children: React.ReactNode, onClick: () => void, className?: string }) => (
-        <button
-            onClick={onClick}
-            disabled={isEditing}
-            className={clsx(
-                "bg-[var(--color-primary)] text-black font-black uppercase tracking-wider py-4 px-8 hover:bg-white transition-all duration-300 transform hover:-translate-y-1 shadow-[0_0_20px_rgba(0,240,255,0.3)] hover:shadow-[0_0_40px_rgba(255,255,255,0.5)]",
-                className
-            )}
-        >
-            {children}
-        </button>
-    );
-
-    const OutlinedButton = ({ children, onClick }: { children: React.ReactNode, onClick?: () => void }) => (
-        <button
-            onClick={onClick}
-            className="border border-white/20 text-white font-bold uppercase tracking-wider py-4 px-8 hover:bg-white hover:text-black transition-all duration-300"
-        >
-            {children}
-        </button>
-    );
 
     return (
         <div style={cssVariables} className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] font-mono selection:bg-[var(--color-primary)] selection:text-black overflow-x-hidden relative transition-colors duration-300">
@@ -131,7 +126,7 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
                     </div>
 
                     <div className="hidden md:block">
-                        <PrimaryButton onClick={handleBookingClick} className="!py-2 !px-6 text-sm">
+                        <PrimaryButton onClick={handleBookingClick} className="!py-2 !px-6 text-sm" disabled={isEditing}>
                             Agendar
                         </PrimaryButton>
                     </div>
@@ -175,7 +170,7 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
                                 >
                                     Local
                                 </a>
-                                <PrimaryButton onClick={() => { handleBookingClick(); setIsMobileMenuOpen(false); }} className="w-full">
+                                <PrimaryButton onClick={() => { handleBookingClick(); setIsMobileMenuOpen(false); }} className="w-full" disabled={isEditing}>
                                     Agendar Agora
                                 </PrimaryButton>
                             </div>
@@ -228,7 +223,7 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
                         </div>
 
                         <div className="flex flex-col md:flex-row gap-4">
-                            <PrimaryButton onClick={handleBookingClick} className="w-full md:w-auto text-center">
+                            <PrimaryButton onClick={handleBookingClick} className="w-full md:w-auto text-center" disabled={isEditing}>
                                 Agendar Horário
                             </PrimaryButton>
                             <OutlinedButton onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}>
@@ -485,66 +480,37 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
                 </section>
             )}
 
+            {/* FAQ Section */}
+            {data.faq && data.faq.length > 0 && (
+                <FAQSection
+                    faq={data.faq}
+                    isEditing={isEditing}
+                    onUpdate={(index, field, value) => {
+                        const newFaq = [...(data.faq || [])];
+                        newFaq[index] = { ...newFaq[index], [field]: value };
+                        if (onUpdate) onUpdate({ ...data, faq: newFaq });
+                    }}
+                    onAdd={() => {
+                        const newFaq = [...(data.faq || []), { question: "Nova Pergunta", answer: "Nova Resposta" }];
+                        if (onUpdate) onUpdate({ ...data, faq: newFaq });
+                    }}
+                    onRemove={(index) => {
+                        const newFaq = [...(data.faq || [])];
+                        newFaq.splice(index, 1);
+                        if (onUpdate) onUpdate({ ...data, faq: newFaq });
+                    }}
+                    templateId="urban"
+                />
+            )}
+
             {/* Footer / Location */}
             {showMap && (
-                <footer id="location" className="bg-[#080808] border-t border-[var(--color-text)]/5 pt-24 pb-12 px-6">
-                    <div className="container mx-auto">
-                        <div className="grid md:grid-cols-2 gap-16 mb-24">
-                            <div>
-                                <h2 className="text-4xl font-black text-[var(--color-text)] uppercase mb-8">
-                                    <span className="text-[var(--color-primary)]">⚡</span> {name}
-                                </h2>
-                                <p className="text-gray-400 max-w-sm mb-12">
-                                    O ponto de encontro para quem busca excelência, estilo e uma experiência única.
-                                </p>
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-4 text-gray-300">
-                                        <MapPin className="text-[var(--color-primary)]" />
-                                        <EditableText
-                                            as="span"
-                                            isEditing={isEditing}
-                                            value={contact.address}
-                                            onChange={(val) => onUpdate && onUpdate({ ...data, contact: { ...contact, address: val } })}
-                                        />
-                                    </div>
-                                    <div className="flex items-center gap-4 text-gray-300">
-                                        <Phone className="text-[var(--color-primary)]" />
-                                        <EditableText
-                                            as="span"
-                                            isEditing={isEditing}
-                                            value={contact.phone}
-                                            onChange={(val) => onUpdate && onUpdate({ ...data, contact: { ...contact, phone: val } })}
-                                        />
-                                    </div>
-                                    <div className="flex items-center gap-4 text-gray-300">
-                                        <Instagram className="text-[var(--color-primary)]" />
-                                        <div className="flex">
-                                            <span>@</span>
-                                            <EditableText
-                                                as="span"
-                                                isEditing={isEditing}
-                                                value={contact.instagram ?? "barbearia"}
-                                                onChange={(val) => onUpdate && onUpdate({ ...data, contact: { ...contact, instagram: val } })}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-center md:justify-end">
-                                <div className="text-center">
-                                    <h3 className="text-2xl font-bold text-[var(--color-text)] mb-6 uppercase">Pronto para Mudar?</h3>
-                                    <PrimaryButton onClick={handleBookingClick} className="w-full md:w-auto">
-                                        Agendar Agora
-                                    </PrimaryButton>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="border-t border-white/5 pt-8 text-center text-gray-600 text-sm">
-                            <p>&copy; {new Date().getFullYear()} {name}. Todos os direitos reservados.</p>
-                        </div>
-                    </div>
-                </footer>
+                <Footer
+                    data={data}
+                    isEditing={isEditing}
+                    onUpdate={onUpdate}
+                    templateId="urban"
+                />
             )}
         </div>
     );

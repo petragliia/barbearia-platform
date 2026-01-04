@@ -43,7 +43,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
     sections: [],
     activeSectionId: null,
 
-    initializeSections: (initialData) => {
+    initializeSections: (_initialData) => {
         // In a real app, we would parse initialData to reconstruct sections.
         // For now, we will seed with default sections if empty.
         const defaultSections: BuilderSection[] = [

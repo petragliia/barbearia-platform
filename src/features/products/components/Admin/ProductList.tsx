@@ -4,11 +4,14 @@ import { useState } from "react";
 import { Product } from "../../types";
 import { ProductForm } from "./ProductForm";
 import { Modal } from "@/components/ui/Modal";
-import ConfirmationModal from "@/components/ui/ConfirmationModal"; // Check if default export
-import { deleteProductAction, seedProductsAction } from "../../actions/productActions";
-import { Edit, Plus, Trash2, Package, AlertTriangle, RefreshCcw } from "lucide-react";
-import Image from "next/image";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { productService } from "../../services/productService";
+import { Plus, RefreshCcw } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+
+// DataTable Imports
+import { DataTable } from "./data-table";
+import { columns } from "./columns";
 
 interface ProductListProps {
     initialProducts: Product[];
@@ -16,14 +19,25 @@ interface ProductListProps {
 }
 
 export function ProductList({ initialProducts, barberId }: ProductListProps) {
-    const [products] = useState<Product[]>(initialProducts); // Note: In a real app with server actions revalidating, we might rely on router.refresh() and props updating, so simpler to just use props directly. But for optimistic updates or search, state is useful.
-    // Actually, Server Components + RevalidatePath will update the `initialProducts` prop on next render.
-    // So we should iterate over `initialProducts`.
+    // Note: In a real app with server actions revalidating, props are the source of truth.
+    // However, since we are doing some client-side optimistic updates or just waiting for refresh, we can use state or just props.
+    // Given the previous code used state for products, we'll keep using state if we want to update it locally without refresh,
+    // OR we rely on the parent (page) to re-render. Ideally, server actions (revalidatePath) update the page prop.
+    // Let's rely on props => simpler. But wait, sorting/filtering is client side.
+
+    // We will pass 'initialProducts' directly to the table.
+    // If we want instant "Delete" feedback before server reloads, we might need optimistic UI.
+    // But Data Table handles its own view data.
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
-    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [deletingIds, setDeletingIds] = useState<string[]>([]); // Array for bulk support
     const [isRestoring, setIsRestoring] = useState(false);
+
+    // Derived: are we deleting single or multiple?
+    const isDeleting = deletingIds.length > 0;
+    const isSingleDelete = deletingIds.length === 1;
+
     const { toast } = useToast();
 
     const handleCreate = () => {
@@ -36,33 +50,59 @@ export function ProductList({ initialProducts, barberId }: ProductListProps) {
         setIsFormOpen(true);
     };
 
-    const handleDeleteClick = (id: string) => {
-        setDeletingId(id);
+    const handleDelete = (id: string) => {
+        setDeletingIds([id]);
     };
+
+    const handleBulkDelete = (ids: string[]) => {
+        setDeletingIds(ids);
+    }
 
     const handleRestore = async () => {
         if (confirm("Tem certeza? Isso irá adicionar os produtos padrão novamente.")) {
             setIsRestoring(true);
-            const result = await seedProductsAction(barberId);
-            setIsRestoring(false);
-
-            if (result.success) {
-                toast({ title: "Sucesso", description: result.message });
-            } else {
-                toast({ title: "Erro", description: result.message, variant: "destructive" });
+            try {
+                await productService.seedProducts(barberId);
+                toast({ title: "Sucesso", description: "Produtos padrão restaurados." });
+                window.location.reload();
+            } catch (error) {
+                console.error(error);
+                toast({ title: "Erro", description: "Falha ao restaurar produtos.", variant: "destructive" });
+            } finally {
+                setIsRestoring(false);
             }
         }
     };
 
     const confirmDelete = async () => {
-        if (deletingId) {
-            const result = await deleteProductAction(deletingId);
-            if (result.success) {
-                toast({ title: "Sucesso", description: result.message });
-            } else {
-                toast({ title: "Erro", description: result.message, variant: "destructive" });
+        if (deletingIds.length > 0) {
+
+            // Loop for bulk delete or single API if available
+            // For now, we loop or Promise.all.
+            // Ideally backend supports bulk delete.
+            // We'll reuse the single delete action for simplicity or loop it.
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const id of deletingIds) {
+                try {
+                    await productService.deleteProduct(id);
+                    successCount++;
+                } catch (error) {
+                    console.error(error);
+                    errorCount++;
+                }
             }
-            setDeletingId(null);
+
+            if (successCount > 0) {
+                toast({ title: "Sucesso", description: `${successCount} produto(s) excluído(s).` });
+            }
+            if (errorCount > 0) {
+                toast({ title: "Erro", description: `Falha ao excluir ${errorCount} produto(s).`, variant: "destructive" });
+            }
+
+            setDeletingIds([]);
         }
     };
 
@@ -95,90 +135,13 @@ export function ProductList({ initialProducts, barberId }: ProductListProps) {
                 </div>
             </div>
 
-            <div className="rounded-xl border border-slate-800 bg-slate-900/50 overflow-hidden shadow-xl">
-                {initialProducts.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 text-slate-500">
-                        <Package className="h-16 w-16 mb-4 opacity-50" />
-                        <p className="text-lg">Nenhum produto cadastrado.</p>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm text-slate-400">
-                            <thead className="bg-slate-800/50 uppercase text-slate-200 font-medium">
-                                <tr>
-                                    <th className="px-6 py-4">Produto</th>
-                                    <th className="px-6 py-4">Preço</th>
-                                    <th className="px-6 py-4">Estoque</th>
-                                    <th className="px-6 py-4">Status</th>
-                                    <th className="px-6 py-4 text-right">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-800">
-                                {initialProducts.map((product) => (
-                                    <tr key={product.id} className="hover:bg-slate-800/30 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-4">
-                                                <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-slate-800">
-                                                    {product.imageUrl ? (
-                                                        <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
-                                                    ) : (
-                                                        <div className="flex h-full w-full items-center justify-center text-slate-600">
-                                                            <Package className="h-6 w-6" />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <div className="font-semibold text-white">{product.name}</div>
-                                                    <div className="text-xs text-slate-500 max-w-[200px] truncate">{product.description}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 font-medium text-slate-200">
-                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <span className={`font-medium ${product.stock < 5 ? 'text-red-500' : 'text-slate-200'}`}>
-                                                    {product.stock}
-                                                </span>
-                                                {product.stock < 5 && (
-                                                    <span className="flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-xs text-red-500">
-                                                        <AlertTriangle className="h-3 w-3" /> Baixo
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${product.active ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-500/10 text-slate-500'
-                                                }`}>
-                                                {product.active ? 'Ativo' : 'Inativo'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <button
-                                                    onClick={() => handleEdit(product)}
-                                                    className="rounded-lg p-2 text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-500 transition-colors"
-                                                    title="Editar"
-                                                >
-                                                    <Edit className="h-4 w-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteClick(product.id)}
-                                                    className="rounded-lg p-2 text-slate-400 hover:bg-red-500/10 hover:text-red-500 transition-colors"
-                                                    title="Excluir"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
+            <DataTable
+                columns={columns}
+                data={initialProducts}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onBulkDelete={handleBulkDelete}
+            />
 
             <Modal
                 isOpen={isFormOpen}
@@ -193,11 +156,13 @@ export function ProductList({ initialProducts, barberId }: ProductListProps) {
             </Modal>
 
             <ConfirmationModal
-                isOpen={!!deletingId}
-                onCancel={() => setDeletingId(null)}
+                isOpen={isDeleting}
+                onCancel={() => setDeletingIds([])}
                 onConfirm={confirmDelete}
-                title="Excluir Produto"
-                description="Tem certeza que deseja excluir este produto? Esta ação não pode ser desfeita."
+                title={isSingleDelete ? "Excluir Produto" : "Excluir Múltiplos"}
+                description={isSingleDelete
+                    ? "Tem certeza que deseja excluir este produto? Esta ação não pode ser desfeita."
+                    : `Tem certeza que deseja excluir ${deletingIds.length} produtos selecionados?`}
                 confirmLabel="Sim, excluir"
                 cancelLabel="Cancelar"
             />

@@ -1,162 +1,187 @@
 'use client';
 
-import { useState } from 'react';
-import { Check, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Check, Star } from 'lucide-react';
 import Link from 'next/link';
-import { clsx } from 'clsx';
+import { Button } from '@/components/ui/button';
 
 export default function PricingSection() {
-    const [isAnnual, setIsAnnual] = useState(false);
-
-    const plans = [
-        {
-            name: 'Iniciante',
-            subtitle: 'Presença Digital',
-            priceMonthly: 29.90,
-            priceAnnual: 29.90 * 10, // 2 months free
-            features: [
-                'Site Profissional (Modelos Básicos)',
-                'Link direto para seu WhatsApp',
-                'Hospedagem Inclusa',
-                'Editor de Informações'
-            ],
-            cta: 'Começar Agora',
-            href: '/register',
-            popular: false,
-            checkColor: 'text-gray-400'
-        },
-        {
-            name: 'Profissional',
-            subtitle: 'Automação Total',
-            priceMonthly: 59.90,
-            priceAnnual: 59.90 * 10,
-            features: [
-                'Tudo do Iniciante, mais:',
-                'Agendamento Online Automático',
-                'Lembretes via WhatsApp',
-                'Domínio Próprio Conectado',
-                'Painel de Estatísticas',
-                'Modelos Premium (3D e Motion)'
-            ],
-            cta: 'Começar Teste Grátis',
-            href: '/register?plan=pro',
-            popular: true,
-            checkColor: 'text-green-500'
-        },
-        {
-            name: 'Império',
-            subtitle: 'Gestão de Equipe',
-            priceMonthly: 99.90,
-            priceAnnual: 99.90 * 10,
-            features: [
-                'Tudo do Profissional, mais:',
-                'Gestão de Múltiplos Barbeiros',
-                'Cálculo de Comissões',
-                'Histórico de Clientes (CRM)',
-                'Suporte VIP Prioritário'
-            ],
-            cta: 'Falar com Vendas',
-            href: '/contact',
-            popular: false,
-            checkColor: 'text-yellow-500',
-            dark: true
-        }
-    ];
-
     return (
-        <section id="pricing" className="py-24 px-6 bg-white">
-            <div className="container mx-auto max-w-6xl">
-                <div className="text-center mb-16">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">Planos simples e transparentes</h2>
-                    <p className="text-gray-500 mb-8">Escolha o melhor plano para o seu negócio.</p>
+        <section id="pricing" className="relative w-full py-24 bg-slate-950 overflow-hidden">
+            {/* Background Effects - "Living Scenario" */}
+            <div className="absolute inset-0 z-0 pointer-events-none">
+                {/* Subtle Grid */}
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px]"></div>
 
-                    {/* Toggle */}
-                    <div className="flex items-center justify-center gap-4">
-                        <span className={clsx("text-sm font-medium", !isAnnual ? "text-gray-900" : "text-gray-500")}>Mensal</span>
-                        <button
-                            onClick={() => setIsAnnual(!isAnnual)}
-                            className="relative w-14 h-8 bg-gray-200 rounded-full p-1 transition-colors hover:bg-gray-300 focus:outline-none"
-                        >
-                            <div
-                                className={clsx(
-                                    "w-6 h-6 bg-white rounded-full shadow-sm transition-transform",
-                                    isAnnual ? "translate-x-6" : "translate-x-0"
-                                )}
-                            />
-                        </button>
-                        <span className={clsx("text-sm font-medium", isAnnual ? "text-gray-900" : "text-gray-500")}>
-                            Anual <span className="text-green-600 font-bold text-xs ml-1 bg-green-50 px-2 py-0.5 rounded-full">2 Meses Grátis</span>
-                        </span>
-                    </div>
+                {/* Floating Glows/Orbs */}
+                <motion.div
+                    animate={{
+                        scale: [1, 1.2, 1],
+                        opacity: [0.3, 0.5, 0.3],
+                    }}
+                    transition={{
+                        duration: 8,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                    }}
+                    className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px]"
+                />
+
+                <motion.div
+                    animate={{
+                        scale: [1, 1.3, 1],
+                        opacity: [0.2, 0.4, 0.2],
+                        x: [0, 50, 0]
+                    }}
+                    transition={{
+                        duration: 10,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: 1
+                    }}
+                    className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[120px]"
+                />
+            </div>
+
+            <div className="container mx-auto px-6 relative z-10">
+                <div className="text-center mb-16">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                    >
+                        <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">Planos Simples e Transparentes</h2>
+                        <p className="text-slate-400 text-lg">Escolha o plano ideal para o momento da sua barbearia.</p>
+                    </motion.div>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-8 items-center">
-                    {plans.map((plan) => (
-                        <motion.div
-                            key={plan.name}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.5 }}
-                            className={clsx(
-                                "relative p-8 rounded-2xl border transition-all flex flex-col h-full",
-                                plan.popular
-                                    ? "bg-white border-blue-600 shadow-2xl scale-105 z-10"
-                                    : plan.dark
-                                        ? "bg-slate-900 border-slate-800 text-white"
-                                        : "bg-white border-gray-200 hover:border-gray-300"
-                            )}
-                        >
-                            {plan.popular && (
-                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider shadow-lg shadow-blue-600/30">
-                                    Mais Popular
-                                </div>
-                            )}
+                <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                    {/* Starter Plan */}
+                    <PricingCard
+                        title="Starter"
+                        description="Para quem está começando."
+                        price="49"
+                        features={[
+                            "Site Profissional",
+                            "Agendamento via WhatsApp",
+                            "Hospedagem Inclusa"
+                        ]}
+                        buttonText="Começar Agora"
+                        buttonHref="/register?plan=starter"
+                        delay={0.1}
+                    />
 
-                            <div className="mb-8">
-                                <h3 className={clsx("text-xl font-bold mb-1", plan.dark ? "text-white" : "text-gray-900")}>{plan.name}</h3>
-                                <p className={clsx("text-sm mb-6", plan.dark ? "text-gray-400" : "text-gray-500")}>{plan.subtitle}</p>
-                                <div className="flex items-baseline gap-1">
-                                    <span className={clsx("text-4xl font-bold", plan.dark ? "text-white" : "text-gray-900")}>
-                                        R$ {isAnnual ? (plan.priceAnnual / 12).toFixed(2).replace('.', ',') : plan.priceMonthly.toFixed(2).replace('.', ',')}
-                                    </span>
-                                    <span className={clsx(plan.dark ? "text-gray-500" : "text-gray-500")}>/mês</span>
-                                </div>
-                                {isAnnual && (
-                                    <p className="text-xs text-green-500 mt-2 font-medium">
-                                        Faturado R$ {plan.priceAnnual.toFixed(2).replace('.', ',')} anualmente
-                                    </p>
-                                )}
-                            </div>
+                    {/* Pro Plan - Highlighted */}
+                    <PricingCard
+                        title="Pro"
+                        description="Para barbearias em crescimento."
+                        price="89"
+                        features={[
+                            "Tudo do Starter",
+                            "Agendamento Online",
+                            "Gestão de Clientes",
+                            "Lembretes Automáticos"
+                        ]}
+                        buttonText="Assinar Pro"
+                        buttonHref="/register?plan=pro"
+                        isPopular
+                        delay={0.2}
+                    />
 
-                            <ul className="space-y-4 mb-8 flex-1">
-                                {plan.features.map((feature) => (
-                                    <li key={feature} className={clsx("flex items-start gap-3 text-sm", plan.dark ? "text-gray-300" : "text-gray-600")}>
-                                        <Check size={18} className={clsx("shrink-0", plan.checkColor)} />
-                                        {feature}
-                                    </li>
-                                ))}
-                            </ul>
-
-                            <Link
-                                href={plan.href}
-                                className={clsx(
-                                    "w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors",
-                                    plan.popular
-                                        ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/20"
-                                        : plan.dark
-                                            ? "border border-slate-700 text-white hover:bg-slate-800"
-                                            : "border border-gray-200 text-gray-900 hover:bg-gray-50"
-                                )}
-                            >
-                                {plan.cta}
-                                {plan.popular && <ArrowRight size={18} />}
-                            </Link>
-                        </motion.div>
-                    ))}
+                    {/* Empire Plan */}
+                    <PricingCard
+                        title="Empire"
+                        description="Para redes e franquias."
+                        price="149"
+                        features={[
+                            "Tudo do Pro",
+                            "Múltiplos Profissionais",
+                            "Relatórios Avançados",
+                            "Suporte Prioritário"
+                        ]}
+                        buttonText="Falar com Vendas"
+                        buttonHref="/register?plan=empire"
+                        delay={0.3}
+                    />
                 </div>
             </div>
         </section>
+    );
+}
+
+function PricingCard({
+    title,
+    description,
+    price,
+    features,
+    buttonText,
+    buttonHref,
+    isPopular,
+    delay
+}: {
+    title: string,
+    description: string,
+    price: string,
+    features: string[],
+    buttonText: string,
+    buttonHref: string,
+    isPopular?: boolean,
+    delay: number
+}) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: delay }}
+            whileHover={{ y: -8 }}
+            className={`relative p-8 rounded-3xl flex flex-col border transition-all duration-300 ${isPopular
+                    ? 'bg-gradient-to-b from-slate-900 to-slate-950 border-blue-500/50 shadow-2xl shadow-blue-900/20 z-10 scale-105 md:scale-110'
+                    : 'bg-slate-900/40 border-white/10 hover:bg-slate-900/60 hover:border-white/20'
+                }`}
+        >
+            {isPopular && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1 uppercase tracking-wider">
+                    <Star size={10} className="fill-white" /> Mais Popular
+                </div>
+            )}
+
+            <div className="mb-8">
+                <h3 className={`text-xl font-bold mb-2 ${isPopular ? 'text-white' : 'text-slate-200'}`}>
+                    {title}
+                </h3>
+                <p className="text-slate-400 text-sm h-10">{description}</p>
+            </div>
+
+            <div className="mb-8">
+                <div className="flex items-baseline text-white">
+                    <span className="text-sm font-medium opacity-50 mr-1">R$</span>
+                    <span className="text-5xl font-bold tracking-tighter">{price}</span>
+                    <span className="text-sm font-medium text-slate-500 ml-1">/mês</span>
+                </div>
+            </div>
+
+            <ul className="space-y-4 mb-8 flex-grow">
+                {features.map((feature, i) => (
+                    <li key={i} className="flex items-center gap-3 text-sm text-slate-300">
+                        <div className={`rounded-full p-1 ${isPopular ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-800 text-slate-400'}`}>
+                            <Check size={12} strokeWidth={3} />
+                        </div>
+                        {feature}
+                    </li>
+                ))}
+            </ul>
+
+            <Link href={buttonHref} className="mt-auto">
+                <Button
+                    className={`w-full py-6 text-base font-bold rounded-xl transition-all duration-300 shadow-lg ${isPopular
+                            ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/25 hover:shadow-blue-600/40'
+                            : 'bg-slate-800 hover:bg-slate-700 text-white border border-white/5'
+                        }`}
+                >
+                    {buttonText}
+                </Button>
+            </Link>
+        </motion.div>
     );
 }

@@ -47,3 +47,7 @@ backup/
 n8n_local/
 temp-app/
 .antigravityignore
+.env*.local
+
+# firebase
+.firebase/

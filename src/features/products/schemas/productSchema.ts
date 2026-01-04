@@ -7,6 +7,7 @@ export const productSchema = z.object({
     stock: z.number().int().min(0, "Estoque deve ser maior ou igual a 0"),
     imageUrl: z.string().url("URL de imagem inválida").optional().or(z.literal("")),
     active: z.boolean().optional(),
+    category: z.string(),
     barberId: z.string().optional(), // Admin might set this, or it's inferred from context
 });
 

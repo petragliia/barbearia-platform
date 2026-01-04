@@ -59,10 +59,10 @@ export default function DemoWrapper({ initialData, templateId }: DemoWrapperProp
             <AnimatePresence>
                 {isEditing && (
                     <DemoCustomizer
-                        colors={data.content.colors}
+                        colors={data.colors}
                         onUpdate={(newColors) => handleUpdate({
                             ...data,
-                            content: { ...data.content, colors: newColors }
+                            colors: newColors
                         })}
                     />
                 )}

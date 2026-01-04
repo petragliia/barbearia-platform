@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { BarbershopData } from '@/types/barbershop';
 
 interface ThemeEditorProps {
-    colors: BarbershopData['content']['colors'];
-    onUpdate: (newColors: BarbershopData['content']['colors']) => void;
+    colors: BarbershopData['colors'];
+    onUpdate: (newColors: BarbershopData['colors']) => void;
 }
 
 export default function ThemeEditor({ colors, onUpdate }: ThemeEditorProps) {

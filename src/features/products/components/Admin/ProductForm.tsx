@@ -26,6 +26,7 @@ export function ProductForm({ initialData, barberId, onSuccess }: ProductFormPro
             stock: 0,
             imageUrl: "",
             active: true,
+            category: "Geral",
             barberId: barberId,
         },
     });

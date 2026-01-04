@@ -1,27 +1,33 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Store, Smartphone, Crown, TrendingUp, Zap, Shield } from 'lucide-react';
+import { Store, Smartphone, Crown, TrendingUp, Zap, Shield, Calendar, Bell, Package, CircleDollarSign } from 'lucide-react';
 
 export default function FeaturesSection() {
     const features = [
         {
-            icon: Store,
-            title: "Lucre Mais",
-            description: "Venda pomadas e shampoos diretamente pelo seu site. Aumente seu faturamento por cliente com sua loja online integrada.",
+            icon: Calendar,
+            title: "Agenda Inteligente",
+            description: "Seu cliente marca, você recebe. Sem conflito de horários.",
             delay: 0.1
         },
         {
-            icon: Smartphone,
-            title: "Zero Complexidade",
-            description: "Editor 'arrasta e solta' projetado para celulares. Gerencie agendamentos, estoque e financeiro do seu bolso.",
+            icon: Bell,
+            title: "Notificações Automáticas",
+            description: "Reduza faltas com lembretes automáticos no WhatsApp.",
             delay: 0.2
         },
         {
-            icon: Crown,
-            title: "Marca Premium",
-            description: "Destaque-se dos concorrentes que só usam WhatsApp. Ofereça uma experiência VIP com site próprio e exclusivo.",
+            icon: Package,
+            title: "Controle de Estoque",
+            description: "Saiba exatamente quando repor pomadas e shampoos.",
             delay: 0.3
+        },
+        {
+            icon: CircleDollarSign,
+            title: "Custo Acessível",
+            description: "O sistema mais completo pelo melhor custo-benefício do mercado.",
+            delay: 0.4
         }
     ];
 
@@ -32,7 +38,7 @@ export default function FeaturesSection() {
             <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-900/10 rounded-full blur-[128px] pointer-events-none"></div>
 
             <div className="container mx-auto px-6 relative z-10">
-                <div className="grid md:grid-cols-3 gap-8">
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                     {features.map((feature, index) => (
                         <FeatureCard key={index} {...feature} />
                     ))}

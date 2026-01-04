@@ -74,8 +74,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     updateService: (index, field, value) => set((state) => {
         if (!state.data) return {};
         const newServices = [...state.data.services];
-        // @ts-ignore - dynamic field access on service object
-        newServices[index] = { ...newServices[index], [field]: value };
+        // Dynamic field access on service object - using Record type assertion
+        newServices[index] = { ...newServices[index], [field]: value } as typeof newServices[number];
         return {
             data: {
                 ...state.data,

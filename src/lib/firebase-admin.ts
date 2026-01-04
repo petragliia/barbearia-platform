@@ -11,9 +11,27 @@ let app;
 
 // In production/vercel, standard way is creating a service account object from env vars
 // or using the default credential if on Google Cloud (not likely here, likely Vercel)
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
-    : null;
+// In production/vercel, standard way is creating a service account object from env vars
+// or using the default credential if on Google Cloud (not likely here, likely Vercel)
+let serviceAccount = null;
+
+if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    try {
+        serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    } catch (e) {
+        // Retry handling for escaped newlines often found in Vercel/Env vars
+        try {
+            // Sometimes it's a stringified JSON string? Or just replace newlines.
+            // If the env var was pasted with literal "\n" characters
+            const fixed = process.env.FIREBASE_SERVICE_ACCOUNT_KEY.replace(/\\n/g, '\n');
+            serviceAccount = JSON.parse(fixed);
+        } catch (e2) {
+            console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:", e2);
+            // Do not crash build, just proceed with null (will fail at runtime usage but allow build to pass)
+            serviceAccount = null;
+        }
+    }
+}
 
 if (apps.length === 0) {
     if (serviceAccount) {
@@ -24,7 +42,9 @@ if (apps.length === 0) {
         // Fallback or dev mode without explicit service account (won't work for admin privileges usually)
         // For basic dev, you might skip this or error out.
         // We'll initialize with default if no service account (likely fails unless GOOGLE_APPLICATION_CREDENTIALS set)
-        app = initializeApp();
+        app = initializeApp({
+            projectId: "barbearia-f8b17"
+        });
     }
 } else {
     app = apps[0];

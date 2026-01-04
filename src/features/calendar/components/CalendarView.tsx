@@ -15,17 +15,13 @@ import {
     subDays,
     isSameMonth,
     getHours,
-    setHours,
-    setMinutes,
-    isWithinInterval
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Appointment } from '@/types/appointment';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge'; // Assuming exists, otherwise simple span
 
 interface Props {
     appointments: Appointment[];
@@ -152,7 +148,7 @@ export default function CalendarView({ appointments, onDateSelect, colors }: Pro
                         </div>
                         {/* Month Grid */}
                         <div className="grid grid-cols-7 auto-rows-[120px]">
-                            {monthDays.map((day, idx) => {
+                            {monthDays.map((day, _idx) => {
                                 const dayAppointments = getAppointmentsForDay(day);
                                 const isCurrentMonth = isSameMonth(day, currentDate);
                                 const isToday = isSameDay(day, new Date());
@@ -222,7 +218,7 @@ export default function CalendarView({ appointments, onDateSelect, colors }: Pro
                                 </div>
 
                                 {/* Days Columns */}
-                                {weekDays.map((day, dayIdx) => (
+                                {weekDays.map((day, _dayIdx) => (
                                     <div key={day.toString()} className="col-span-1 border-r border-slate-800 last:border-r-0 relative min-w-[100px]">
                                         {/* Rows for grid lines */}
                                         {hours.map(hour => (

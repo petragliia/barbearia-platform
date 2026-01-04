@@ -90,6 +90,7 @@ export default function Sidebar({ isOpen, onClose, hidden }: SidebarProps) {
                     return (
                         <Link
                             key={item.href}
+                            id={item.name === 'Agendamentos' ? 'tour-dashboard-schedule' : undefined}
                             href={item.href}
                             className={cn(
                                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",

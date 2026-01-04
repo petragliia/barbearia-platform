@@ -14,8 +14,7 @@ import ReviewsManager from '@/features/reviews/components/ReviewsManager';
 import { AnimatePresence } from 'framer-motion';
 import { Toast } from '@/components/ui/Toast';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
-import FAQSection from '@/components/ui/FAQSection';
-import ContactSection from '@/components/ui/ContactSection';
+
 import EditorSidebar from '@/features/editor/components/EditorSidebar';
 import { useEditor } from '@/hooks/useEditor';
 import { useEditorStore } from '@/store/useEditorStore';
@@ -47,7 +46,7 @@ export default function SiteEditorPage() {
                 const docRef = doc(db, 'barbershops', user.uid);
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
-                    let rawData = docSnap.data() as any;
+                    const rawData = docSnap.data() as any;
 
                     // Migration/Normalization for legacy data structure
                     if (!rawData.colors && rawData.content?.colors) {
@@ -149,34 +148,7 @@ export default function SiteEditorPage() {
 
                             {/* Global Sections (FAQ & Contact) */}
                             <div className="bg-[var(--color-bg)] text-[var(--color-text)]">
-                                <FAQSection
-                                    faq={data.faq || []}
-                                    isEditing={isEditing}
-                                    onUpdate={(index, field, value) => {
-                                        const newFaq = [...(data.faq || [])];
-                                        newFaq[index] = { ...newFaq[index], [field]: value };
-                                        handleUpdate({ ...data, faq: newFaq });
-                                    }}
-                                    onAdd={() => {
-                                        const newFaq = [...(data.faq || []), { question: "Nova Pergunta", answer: "Nova Resposta" }];
-                                        handleUpdate({ ...data, faq: newFaq });
-                                    }}
-                                    onRemove={(index) => {
-                                        const newFaq = [...(data.faq || [])];
-                                        newFaq.splice(index, 1);
-                                        handleUpdate({ ...data, faq: newFaq });
-                                    }}
-                                />
-                                <ContactSection
-                                    contact={data.contact}
-                                    isEditing={isEditing}
-                                    onUpdate={(field, value) => {
-                                        handleUpdate({
-                                            ...data,
-                                            contact: { ...data.contact, [field]: value }
-                                        });
-                                    }}
-                                />
+                                {/* Global Sections moved inside Templates for better theming/positioning */}
                             </div>
                         </div>
                     </div>

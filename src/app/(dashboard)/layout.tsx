@@ -9,6 +9,7 @@ import Sidebar from '@/features/dashboard/components/Sidebar';
 import { usePermission } from '@/hooks/usePermission';
 import { SubscriptionProvider } from '@/features/subscription/context/SubscriptionContext';
 import UpgradeModal from '@/features/subscription/components/UpgradeModal';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     return (
@@ -60,6 +61,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                         </button>
 
                         <div className="flex items-center gap-4 ml-auto">
+                            <ThemeToggle />
                             <div className="text-right hidden sm:block">
                                 <div className="text-sm font-medium text-white">Barbearia Modelo</div>
                                 <div className="text-xs text-slate-400">Plano {planLabel}</div>

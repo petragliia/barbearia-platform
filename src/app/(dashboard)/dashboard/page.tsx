@@ -1,23 +1,22 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import {
-    Users, Calendar, DollarSign, TrendingUp, Clock, Loader2,
-    Receipt, UserPlus, PieChart, Star, ArrowRight, Package,
-    Droplets, Brush, Globe, MessageSquare, BellRing, Cake,
-    RotateCcw, Megaphone, Bell, Plus, Menu, TrendingDown, Scissors,
-    AlertCircle
+    Users, Calendar, DollarSign, Loader2,
+    Receipt, UserPlus, Package,
+    Megaphone, Bell, Plus
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, format, isSameDay, startOfMonth, endOfMonth } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { Product, Service } from '@/types/barbershop';
 import BookingModal from '@/features/booking/components/BookingModal';
 import { Barber } from '@/features/team/types';
+import ShareBarbershopCard from '@/features/dashboard/components/ShareBarbershopCard';
 
 interface DashboardMetrics {
     appointmentsToday: number;
@@ -38,10 +37,15 @@ interface DashboardMetrics {
         revenue: number;
     }[];
     uniqueClientsMonth: number;
+    slug?: string;
 }
+
+import { useTour } from '@/hooks/useTour';
 
 export default function DashboardPage() {
     const { user } = useAuth();
+    useTour('dashboard'); // Start dashboard tour
+
     const [loading, setLoading] = useState(true);
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [metrics, setMetrics] = useState<DashboardMetrics>({
@@ -56,7 +60,8 @@ export default function DashboardPage() {
         services: [],
         appointmentsMonthCount: 0,
         barbersStats: [],
-        uniqueClientsMonth: 0
+        uniqueClientsMonth: 0,
+        slug: ''
     });
 
     useEffect(() => {
@@ -153,6 +158,7 @@ export default function DashboardPage() {
                 const barbershopSnap = await getDoc(barbershopDocRef);
                 const products = barbershopSnap.exists() ? (barbershopSnap.data().products || []).slice(0, 3) : [];
                 const services = barbershopSnap.exists() ? (barbershopSnap.data().services || []) : [];
+                const slug = barbershopSnap.exists() ? barbershopSnap.data().slug : '';
 
                 // 6. Fetch Barbers & Calculate Stats
                 const barbersQuery = query(collection(db, 'barbershops', user.uid, 'professionals'), where('active', '==', true));
@@ -186,7 +192,8 @@ export default function DashboardPage() {
                     services,
                     appointmentsMonthCount,
                     barbersStats,
-                    uniqueClientsMonth
+                    uniqueClientsMonth,
+                    slug
                 });
 
             } catch (error) {
@@ -235,8 +242,11 @@ export default function DashboardPage() {
                 </div>
             </div>
 
+            {/* Share Your Barbershop Card */}
+            <ShareBarbershopCard slug={metrics.slug} />
+
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div id="tour-dashboard-stats" className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {/* Revenue Today */}
                 <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg flex items-center justify-between">
                     <div>
@@ -410,9 +420,9 @@ export default function DashboardPage() {
                             <Megaphone className="text-slate-500" size={24} />
                         </div>
                         <p className="text-slate-400 text-sm">Nenhuma campanha de marketing ativa no momento.</p>
-                        <button className="text-xs bg-purple-600/20 text-purple-400 px-3 py-1 rounded-full hover:bg-purple-600/30 transition-colors">
+                        <Link href="/dashboard/marketing" className="text-xs bg-purple-600/20 text-purple-400 px-3 py-1 rounded-full hover:bg-purple-600/30 transition-colors">
                             Criar primeira campanha
-                        </button>
+                        </Link>
                     </div>
                 </div>
 

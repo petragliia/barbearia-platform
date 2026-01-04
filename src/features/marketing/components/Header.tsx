@@ -3,12 +3,12 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Scissors } from 'lucide-react';
-import MobileMenu from '@/components/marketing/MobileMenu';
-import FeaturesMenu from '@/components/marketing/FeaturesMenu';
+import MobileMenu from '@/features/marketing/components/MobileMenu';
+import FeaturesMenu from '@/features/marketing/components/FeaturesMenu';
 
 export default function Header() {
     return (
-        <header className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-white/10">
+        <header className="sticky top-0 left-0 right-0 z-50 bg-[#020817]/80 backdrop-blur-md border-b border-white/10">
             <div className="container mx-auto px-4 md:px-8 h-20 flex items-center justify-between">
                 {/* Logo */}
                 <div className="flex items-center gap-2">

@@ -69,6 +69,7 @@ export default function EditorSidebar() {
 
             {/* Main Sidebar */}
             <motion.div
+                id="tour-editor-sidebar"
                 initial={{ marginLeft: -320 }}
                 animate={{ marginLeft: isOpen ? 0 : -320 }}
                 transition={{ type: "spring", damping: 20, stiffness: 100 }}
@@ -151,35 +152,37 @@ export default function EditorSidebar() {
                 <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-slate-200">
                     {activeTab === 'theme' && (
                         <div className="space-y-6">
+                            {/* Template Selector in Sidebar */}
+                            <div className="space-y-3 pb-4 border-b border-slate-100">
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Template</h4>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {[
+                                        { id: 'classic', name: 'Classic', color: 'bg-emerald-900' },
+                                        { id: 'modern', name: 'Modern', color: 'bg-slate-900' },
+                                        { id: 'urban', name: 'Urban', color: 'bg-orange-900' }
+                                    ].map((theme) => (
+                                        <button
+                                            key={theme.id}
+                                            onClick={() => updateData({ ...data, template_id: theme.id as 'classic' | 'modern' | 'urban' })}
+                                            className={clsx(
+                                                "flex flex-col items-center gap-1 p-2 rounded-lg border transition-all text-xs",
+                                                data.template_id === theme.id
+                                                    ? "border-blue-500 bg-blue-50/50"
+                                                    : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                                            )}
+                                        >
+                                            <div className={clsx("w-full aspect-square rounded-md mb-1", theme.color)}></div>
+                                            <span className={clsx("font-medium", data.template_id === theme.id ? "text-blue-600" : "text-slate-600")}>
+                                                {theme.name}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
                             <ThemeEditor
                                 colors={data.colors}
                                 onUpdate={(newColors) => {
-                                    // Manually update root colors using updateData (since updateContent only updates content)
-                                    // Assuming updateData is available from useEditor
-                                    // Actually we have `updateData` available in context, wait, I need to check if useEditor exposes it.
-                                    // Yes, line 32 destructures updateData.
-                                    // Wait, I need to make sure I don't lose other data.
-                                    // The updateData function usually merges or replaces?
-                                    // useEditor is likely a wrapper around useEditorStore.
-                                    // Let's assume updateData replaces the whole object or merges?
-                                    // Usually set in zustand.
-                                    // Safest is to pass the whole object.
-                                    // But wait, updateContent is a helper.
-                                    // I should probably use updateData({ ...data, colors: newColors })
-                                    // checking line 32 again.
-                                    // Yes.
-                                    // NOTE: I cannot use updateContent for 'colors' anymore if it's not in content.
-                                    // I might as well import updateData from useEditor hook. It is already imported.
-                                    // So:
-                                    const newData = { ...data, colors: newColors };
-                                    // Assuming updateData takes BarbershopData.
-                                    // Wait, I need to check if 'updateData' is actually available in scope of return.
-                                    // Yes, line 32.
-                                    // But wait, I need to be careful about 'updateContent' usage below.
-                                    // 'updateContent' was imported in line 32.
-                                    // I need to use 'updateData' which is also imported in line 32.
-                                    // Checking line 32: updateData, updateContent.
-                                    // So I will just use updateData.
                                     if (updateData) updateData({ ...data, colors: newColors });
                                 }}
                             />
@@ -212,6 +215,7 @@ export default function EditorSidebar() {
                     )}
 
                     <Button
+                        id="tour-editor-save"
                         className="w-full bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/10 h-11"
                         onClick={handleSave}
                         disabled={saving}

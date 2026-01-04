@@ -44,10 +44,10 @@ export default function FooterSection() {
                 <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
                     <p>© 2024 BarberSaaS. Todos os direitos reservados.</p>
                     <div className="flex gap-6">
-                        <a href="#" className="hover:text-white transition-colors"><Instagram size={18} /></a>
-                        <a href="#" className="hover:text-white transition-colors"><Twitter size={18} /></a>
-                        <a href="#" className="hover:text-white transition-colors"><Linkedin size={18} /></a>
-                        <a href="#" className="hover:text-white transition-colors"><Github size={18} /></a>
+                        <a href="javascript:void(0)" className="hover:text-white transition-colors"><Instagram size={18} /></a>
+                        <a href="javascript:void(0)" className="hover:text-white transition-colors"><Twitter size={18} /></a>
+                        <a href="javascript:void(0)" className="hover:text-white transition-colors"><Linkedin size={18} /></a>
+                        <a href="javascript:void(0)" className="hover:text-white transition-colors"><Github size={18} /></a>
                     </div>
                 </div>
             </div>

@@ -1,5 +1,5 @@
 import { useWizardStore } from '@/store/useWizardStore';
-import { CheckCircle2, Globe, Phone, Scissors, Calendar, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Globe, Phone, Scissors, AlertCircle } from 'lucide-react';
 import OrderBump from '../OrderBump';
 import { ADDONS } from '@/config/addons';
 import { VISIBLE_PLANS } from '@/config/plans';

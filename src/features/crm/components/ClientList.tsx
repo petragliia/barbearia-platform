@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import { useClients } from '../hooks/useClients';
 import { Client, SortField, SortOrder } from '../types';
-import { Search, Loader2, ArrowUpDown, ArrowUp, ArrowDown, User, DollarSign, Calendar } from 'lucide-react';
+import { Search, Loader2, ArrowUpDown, ArrowUp, ArrowDown, User } from 'lucide-react';
 import { ClientHistoryModal } from './ClientHistoryModal';
 
 export default function ClientList() {
@@ -12,7 +12,7 @@ export default function ClientList() {
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
     const filteredClients = useMemo(() => {
-        let result = clients.filter(c =>
+        const result = clients.filter(c =>
             c.name.toLowerCase().includes(search.toLowerCase()) ||
             c.phone.includes(search)
         );

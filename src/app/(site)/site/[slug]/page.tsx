@@ -5,8 +5,8 @@ import TemplateClassic from '@/features/templates/components/TemplateClassic';
 import TemplateModern from '@/features/templates/components/TemplateModern';
 import TemplateUrban from '@/features/templates/components/TemplateUrban';
 import { BarbershopData } from '@/types/barbershop';
-import FAQSection from '@/components/ui/FAQSection';
-import ContactSection from '@/components/ui/ContactSection';
+import FAQSection from '@/features/marketing/components/FAQSection';
+import ContactSection from '@/features/marketing/components/ContactSection';
 import GreetingFeature from '@/components/features/GreetingFeature';
 import PageViewTracker from '@/components/features/PageViewTracker';
 import ShopSection from '@/features/shop/components/ShopSection';
@@ -63,7 +63,7 @@ export default async function BarberPage({ params }: PageProps) {
                 <ShopSection barberId={doc.id} theme={templateId} />
 
                 {data.faq && <FAQSection faq={data.faq} />}
-                <ContactSection contact={data.content.contact} />
+                <ContactSection contact={data.contact} />
 
                 {/* Floating Elements */}
                 <CartDrawer />

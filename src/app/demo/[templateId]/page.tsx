@@ -8,21 +8,23 @@ const DEMO_DATA: BarbershopData = {
     uid: 'demo-uid',
     slug: 'demo',
     template_id: 'classic', // will be overridden
+    isPublished: true,
+    products: [],
+    name: 'Barbearia Modelo',
+    colors: {
+        primary: '#d4af37', // Gold for Classic
+        secondary: '#000000',
+        background: '#0a0a0a',
+        text: '#d4af37'
+    },
+    contact: {
+        phone: '(11) 99999-9999',
+        address: 'Rua Exemplo, 123 - Centro',
+        whatsapp: '5511999999999'
+    },
     content: {
-        name: 'Barbearia Modelo',
         description: 'Experimente a qualidade e o estilo que você merece.',
         hero_image: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=2074&auto=format&fit=crop',
-        colors: {
-            primary: '#d4af37', // Gold for Classic
-            secondary: '#000000',
-            background: '#0a0a0a',
-            text: '#d4af37'
-        },
-        contact: {
-            phone: '(11) 99999-9999',
-            address: 'Rua Exemplo, 123 - Centro',
-            whatsapp: '5511999999999'
-        }
     },
     services: [
         { name: 'Corte de Cabelo', price: 50, duration: '45 min' },
@@ -52,7 +54,7 @@ export default async function DemoPage({ params }: { params: Promise<{ templateI
 
     // Adjust colors/images based on template
     if (templateId === 'modern') {
-        data.content.colors = {
+        data.colors = {
             primary: '#111827',
             secondary: '#38bdf8',
             background: '#ffffff',
@@ -60,7 +62,7 @@ export default async function DemoPage({ params }: { params: Promise<{ templateI
         };
         data.content.hero_image = 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=2070&auto=format&fit=crop';
     } else if (templateId === 'urban') {
-        data.content.colors = {
+        data.colors = {
             primary: '#ef4444',
             secondary: '#00F0FF',
             background: '#050505',

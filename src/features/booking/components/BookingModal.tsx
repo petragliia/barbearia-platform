@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar as CalendarIcon, Clock, Check, ChevronRight, ChevronLeft, User, ShoppingBag } from 'lucide-react';
+import { X, Clock, Check, ChevronRight, ChevronLeft, User, ShoppingBag } from 'lucide-react';
 import { Service } from '@/types/barbershop';
 import { useBooking } from '@/features/booking/hooks/useBooking';
 import { useLoyalty } from '@/features/loyalty/hooks/useLoyalty';
@@ -141,7 +141,7 @@ export default function BookingModal({ isOpen, onClose, barbershopId, services, 
                 // Optionally add point per service: await addPoints(selectedServices.length, ...)
                 // Let's keep it simple: 1 visit = 1 point, or maybe 1 point.
                 await addPoints(1, `Agendamento: ${selectedServices.map(s => s.name).join(', ')}`);
-            } catch (ignore) {
+            } catch {
                 console.log("Loyalty points skipped");
             }
 

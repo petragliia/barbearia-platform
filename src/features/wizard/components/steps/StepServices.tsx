@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useWizardStore } from '@/store/useWizardStore';
-import { Scissors, Plus, Trash2, DollarSign, Clock } from 'lucide-react';
+import { Scissors, Plus, Trash2 } from 'lucide-react';
 
 export default function StepServices() {
     const { barbershopData, addService, removeService } = useWizardStore();

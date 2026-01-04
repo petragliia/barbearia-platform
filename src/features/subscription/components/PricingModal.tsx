@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 
+import { PlanTier } from "@/config/plans";
+
 export function PricingModal() {
     const { isUpgradeModalOpen, closeUpgradeModal, upgradePlan, currentPlan, loading } = useSubscription();
 
@@ -102,7 +104,7 @@ export function PricingModal() {
                                     </ul>
 
                                     <Button
-                                        onClick={() => userWantsUpgrade(plan.id as PlanType)}
+                                        onClick={() => userWantsUpgrade(plan.id as PlanTier)}
                                         disabled={isCurrent || loading}
                                         className={`w-full py-6 rounded-xl font-bold transition-all ${isCurrent
                                             ? 'bg-slate-800 text-slate-400 cursor-default'

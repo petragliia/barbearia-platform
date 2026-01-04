@@ -17,6 +17,7 @@ const MOCK_PRODUCTS: Product[] = [
         imageUrl: 'https://images.unsplash.com/photo-1626285861696-9f0bf5a49c6d?auto=format&fit=crop&q=80&w=800',
         stock: 10,
         active: true,
+        category: 'Geral',
         createdAt: new Date(),
     },
     {
@@ -28,6 +29,7 @@ const MOCK_PRODUCTS: Product[] = [
         imageUrl: 'https://images.unsplash.com/photo-1626285862291-3c66804b7522?auto=format&fit=crop&q=80&w=800',
         stock: 15,
         active: true,
+        category: 'Geral',
         createdAt: new Date(),
     },
     {
@@ -39,6 +41,7 @@ const MOCK_PRODUCTS: Product[] = [
         imageUrl: 'https://images.unsplash.com/photo-1556228720-1987ba42d829?auto=format&fit=crop&q=80&w=800',
         stock: 8,
         active: true,
+        category: 'Geral',
         createdAt: new Date(),
     },
     {
@@ -50,6 +53,7 @@ const MOCK_PRODUCTS: Product[] = [
         imageUrl: 'https://images.unsplash.com/photo-1626285861846-5a4155554366?auto=format&fit=crop&q=80&w=800',
         stock: 5,
         active: true,
+        category: 'Geral',
         createdAt: new Date(),
     },
 ];

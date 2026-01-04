@@ -1,23 +1,56 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { ProductManager } from "@/features/products/components/Admin/ProductManager";
 import { productService } from "@/features/products/services/productService";
-import { seedProductsAction } from "@/features/products/actions/productActions";
+import { Product } from "@/features/products/types";
+import { Loader2 } from "lucide-react";
 
-export const dynamic = "force-dynamic";
-
-export default async function ProductsPage() {
-    // In a real app with auth, we would get the barberId from the session
-    // For now, we use a hardcoded or derived ID.
+export default function ProductsPage() {
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
+    // In a real app with auth, we would get the barberId from the session/context
     const barberId = "default";
 
-    let products = await productService.getProductsByBarberId(barberId);
+    useEffect(() => {
+        let mounted = true;
 
-    // Auto-Initialize if empty
-    if (products.length === 0) {
-        console.log("No products found. Auto-seeding defaults...");
-        // Call the service directly (since we are on server)
-        await productService.seedProducts(barberId);
-        // Refresh the list
-        products = await productService.getProductsByBarberId(barberId);
+        const loadProducts = async () => {
+            try {
+                let fetchedProducts = await productService.getProductsByBarberId(barberId);
+
+                // Auto-Initialize if empty
+                if (fetchedProducts.length === 0) {
+                    console.log("No products found. Auto-seeding defaults (client)...");
+                    await productService.seedProducts(barberId);
+                    fetchedProducts = await productService.getProductsByBarberId(barberId);
+                }
+
+                if (mounted) {
+                    setProducts(fetchedProducts);
+                }
+            } catch (error) {
+                console.error("Failed to load products:", error);
+            } finally {
+                if (mounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadProducts();
+
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="flex h-[50vh] w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            </div>
+        );
     }
 
     return (

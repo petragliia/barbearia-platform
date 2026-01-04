@@ -22,10 +22,10 @@ export default function HeroSection() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5 }}
-                            className="inline-flex items-center gap-2 bg-white/5 border border-white/10 text-blue-400 text-xs font-bold tracking-wider py-1.5 px-4 rounded-full mb-8 backdrop-blur-md"
+                            className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold tracking-wider py-1.5 px-4 rounded-full mb-8 backdrop-blur-md"
                         >
-                            <Zap size={12} className="fill-blue-400" />
-                            PLATAFORMA Nº1 PARA BARBEARIAS
+                            <Zap size={12} className="fill-green-400" />
+                            CONFIGURE PELO CELULAR EM 15 MIN
                         </motion.div>
 
                         <motion.h1
@@ -34,10 +34,11 @@ export default function HeroSection() {
                             transition={{ duration: 0.5, delay: 0.1 }}
                             className="text-5xl lg:text-7xl font-bold text-white mb-6 tracking-tight leading-[1.1]"
                         >
-                            Eleve o nível da sua{' '}
+                            Sua Barbearia Online e{' '}
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-                                Barbearia
+                                Profissional
                             </span>
+                            {' '}em 15 Minutos.
                         </motion.h1>
 
                         <motion.p
@@ -46,7 +47,7 @@ export default function HeroSection() {
                             transition={{ duration: 0.5, delay: 0.2 }}
                             className="text-lg lg:text-xl text-slate-400 max-w-xl mb-10 leading-relaxed"
                         >
-                            Gestão completa, agendamento online e venda de produtos em uma única plataforma premium. Deixe a tecnologia trabalhar enquanto você foca no corte.
+                            Tenha agendamento automático, controle de estoque e lembretes via WhatsApp. Tudo isso pelo preço de um corte de cabelo.
                         </motion.p>
 
                         <motion.div

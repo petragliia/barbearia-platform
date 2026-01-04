@@ -5,7 +5,7 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { Appointment } from '@/types/appointment';
-import { Calendar as CalendarIcon, Clock, CheckCircle, XCircle, AlertCircle, LayoutList, Palette, Settings, List } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, CheckCircle, XCircle, Palette, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import CalendarView from '@/features/calendar/components/CalendarView';

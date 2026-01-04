@@ -12,17 +12,28 @@ interface FAQSectionProps {
     onUpdate?: (index: number, field: 'question' | 'answer', value: string) => void;
     onAdd?: () => void;
     onRemove?: (index: number) => void;
+    templateId?: string;
 }
 
-export default function FAQSection({ faq, isEditing, onUpdate, onAdd, onRemove }: FAQSectionProps) {
+export default function FAQSection({ faq, isEditing, onUpdate, onAdd, onRemove, templateId = 'classic' }: FAQSectionProps) {
     const [openIndex, setOpenIndex] = useState<number | null>(0);
 
     const toggleAccordion = (index: number) => {
         setOpenIndex(openIndex === index ? null : index);
     };
 
+    // Theme Logic
+    const isModern = templateId === 'modern';
+    const isUrban = templateId === 'urban';
+
+    const containerStyle = isModern ? 'font-sans' : isUrban ? 'font-sans' : 'font-serif';
+    const headingStyle = isModern ? 'tracking-tighter uppercase' : isUrban ? 'tracking-wide uppercase' : 'tracking-normal';
+    const cardStyle = isModern ? 'rounded-none border-l-4 border-transparent hover:border-[var(--color-primary)] bg-white shadow-sm'
+        : isUrban ? 'rounded-xl border border-gray-100 shadow-sm bg-white'
+            : 'rounded-lg border border-[var(--color-primary)]/20 bg-[var(--color-text)]/5';
+
     return (
-        <section className="py-24 relative overflow-hidden" style={{ backgroundColor: 'var(--color-bg)' }}>
+        <section className={`py-24 relative overflow-hidden ${containerStyle}`} style={{ backgroundColor: 'var(--color-bg)' }}>
             <div className="container mx-auto px-6 max-w-4xl relative z-10">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -30,12 +41,19 @@ export default function FAQSection({ faq, isEditing, onUpdate, onAdd, onRemove }
                     viewport={{ once: true }}
                     className="text-center mb-16"
                 >
-                    <h2 className="text-4xl md:text-5xl font-bold mb-4 text-[var(--color-primary)]">Perguntas Frequentes</h2>
-                    <div className="flex justify-center items-center gap-4">
-                        <div className="h-[1px] w-20 bg-[var(--color-primary)] opacity-50"></div>
-                        <HelpCircle size={24} className="text-[var(--color-primary)]" />
-                        <div className="h-[1px] w-20 bg-[var(--color-primary)] opacity-50"></div>
-                    </div>
+                    <h2 className={`text-4xl md:text-5xl font-bold mb-4 text-[var(--color-primary)] ${headingStyle}`}>Perguntas Frequentes</h2>
+
+                    {/* Decorative Elements based on Theme */}
+                    {!isModern && !isUrban && (
+                        <div className="flex justify-center items-center gap-4">
+                            <div className="h-[1px] w-20 bg-[var(--color-primary)] opacity-50"></div>
+                            <HelpCircle size={24} className="text-[var(--color-primary)]" />
+                            <div className="h-[1px] w-20 bg-[var(--color-primary)] opacity-50"></div>
+                        </div>
+                    )}
+                    {isUrban && (
+                        <div className="w-24 h-1 bg-[var(--color-primary)] mx-auto mt-6 rounded-full opacity-30"></div>
+                    )}
                 </motion.div>
 
                 <div className="space-y-4">
@@ -46,11 +64,19 @@ export default function FAQSection({ faq, isEditing, onUpdate, onAdd, onRemove }
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ delay: index * 0.1 }}
-                            className="border border-[var(--color-primary)]/20 rounded-lg overflow-hidden bg-[var(--color-text)]/5"
+                            className={`${cardStyle} overflow-hidden transition-all duration-300`}
                         >
-                            <button
+                            <div
+                                role="button"
+                                tabIndex={0}
                                 onClick={() => toggleAccordion(index)}
-                                className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-[var(--color-primary)]/5 transition-colors"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        toggleAccordion(index);
+                                    }
+                                }}
+                                className={`w-full px-6 py-4 flex items-center justify-between text-left transition-colors cursor-pointer ${isModern ? 'hover:bg-gray-50' : 'hover:bg-[var(--color-primary)]/5'}`}
                             >
                                 <EditableText
                                     as="span"
@@ -62,7 +88,7 @@ export default function FAQSection({ faq, isEditing, onUpdate, onAdd, onRemove }
                                 <span className="text-[var(--color-primary)] ml-4">
                                     {openIndex === index ? <Minus size={20} /> : <Plus size={20} />}
                                 </span>
-                            </button>
+                            </div>
 
                             <AnimatePresence>
                                 {openIndex === index && (

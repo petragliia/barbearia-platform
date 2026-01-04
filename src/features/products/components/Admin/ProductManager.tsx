@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Product } from "../../types";
 import { ProductForm } from "./ProductForm";
 import { Modal } from "@/components/ui/Modal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
-import { deleteProductAction, seedProductsAction } from "../../actions/productActions";
+import { productService } from "../../services/productService"; // Client Service
 import { Edit, Plus, Trash2, Package, AlertTriangle, RefreshCcw } from "lucide-react";
 import Image from "next/image";
 import { useToast } from "@/components/ui/use-toast";
@@ -16,7 +16,12 @@ interface ProductManagerProps {
 }
 
 export function ProductManager({ initialProducts, barberId }: ProductManagerProps) {
-    const [products] = useState<Product[]>(initialProducts);
+    const [products, setProducts] = useState<Product[]>(initialProducts);
+
+    // Update local state when prop changes (e.g. after parent re-fetch)
+    useEffect(() => {
+        setProducts(initialProducts);
+    }, [initialProducts]);
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
@@ -38,34 +43,47 @@ export function ProductManager({ initialProducts, barberId }: ProductManagerProp
         setDeletingId(id);
     };
 
+    const refreshProducts = async () => {
+        try {
+            const latest = await productService.getProductsByBarberId(barberId);
+            setProducts(latest);
+        } catch (error) {
+            console.error("Failed to refresh products", error);
+        }
+    };
+
     const handleRestore = async () => {
         if (confirm("Tem certeza? Isso irá adicionar os produtos padrão novamente.")) {
             setIsRestoring(true);
-            const result = await seedProductsAction(barberId);
-            setIsRestoring(false);
-
-            if (result.success) {
-                toast({ title: "Sucesso", description: result.message });
-            } else {
-                toast({ title: "Erro", description: result.message, variant: "destructive" });
+            try {
+                await productService.seedProducts(barberId);
+                await refreshProducts();
+                toast({ title: "Sucesso", description: "Produtos restaurados!" });
+            } catch (error) {
+                toast({ title: "Erro", description: "Falha ao restaurar produtos.", variant: "destructive" });
+            } finally {
+                setIsRestoring(false);
             }
         }
     };
 
     const confirmDelete = async () => {
         if (deletingId) {
-            const result = await deleteProductAction(deletingId);
-            if (result.success) {
-                toast({ title: "Sucesso", description: result.message });
-            } else {
-                toast({ title: "Erro", description: result.message, variant: "destructive" });
+            try {
+                await productService.deleteProduct(deletingId);
+                setProducts((prev) => prev.filter((p) => p.id !== deletingId));
+                toast({ title: "Sucesso", description: "Produto excluído!" });
+            } catch (error) {
+                toast({ title: "Erro", description: "Falha ao excluir produto.", variant: "destructive" });
+            } finally {
+                setDeletingId(null);
             }
-            setDeletingId(null);
         }
     };
 
     const onFormSuccess = () => {
         setIsFormOpen(false);
+        refreshProducts(); // Refresh list after create/update
         toast({ title: "Sucesso", description: editingProduct ? "Produto atualizado!" : "Produto criado!" });
     };
 

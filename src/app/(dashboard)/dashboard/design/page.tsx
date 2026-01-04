@@ -5,7 +5,7 @@ import { useEditor } from '@/hooks/useEditor';
 import { useSaveTheme } from '@/hooks/useSaveTheme';
 import { BarbershopData } from '@/types/barbershop';
 import { Button } from '@/components/ui/button';
-import { Loader2, Undo, Redo, Save, Smartphone, Palette, Layout, Type, Upload, Check } from 'lucide-react';
+import { Loader2, Undo, Save, Smartphone, Palette, Layout, Type, Upload, Check, Edit3 } from 'lucide-react';
 import ImageUploader from '@/components/ui/ImageUploader';
 import TemplateClassic from '@/features/templates/components/TemplateClassic';
 import TemplateModern from '@/features/templates/components/TemplateModern';
@@ -22,8 +22,11 @@ const FONTS = [
     { id: 'mono', name: 'JetBrains (Tech)', class: 'font-mono' },
 ];
 
+import { useTour } from '@/hooks/useTour';
+
 export default function DesignEditorPage() {
     const { user } = useAuth();
+    useTour('editor'); // Start editor tour
     const {
         data,
         setInitialData,
@@ -35,6 +38,7 @@ export default function DesignEditorPage() {
 
     const { saveChanges, saving } = useSaveTheme();
     const [loading, setLoading] = useState(true);
+    const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit'); // Added viewMode state
 
     // Load initial data
     useEffect(() => {
@@ -81,30 +85,56 @@ export default function DesignEditorPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="icon" onClick={resetChanges} disabled={!hasChanges} className="text-slate-400 hover:text-slate-100" title="Desfazer">
+                    <Button variant="ghost" size="icon" onClick={resetChanges} disabled={!hasChanges} className="text-slate-400 hover:text-slate-100 hidden md:flex" title="Desfazer">
                         <Undo size={18} />
                     </Button>
-                    <Button variant="ghost" size="icon" disabled className="text-slate-600 cursor-not-allowed" title="Refazer">
-                        <Redo size={18} />
-                    </Button>
-                    <div className="h-6 w-px bg-slate-800 mx-1"></div>
+                    <div className="h-6 w-px bg-slate-800 mx-1 hidden md:block"></div>
                     <Button
                         onClick={() => saveChanges()}
                         disabled={saving || !hasChanges}
-                        className="bg-blue-600 hover:bg-blue-500 text-white font-medium min-w-[140px]"
+                        className="bg-blue-600 hover:bg-blue-500 text-white font-medium min-w-[100px] md:min-w-[140px] text-xs md:text-sm"
                     >
-                        {saving ? <Loader2 className="animate-spin mr-2" size={18} /> : <Save className="mr-2" size={18} />}
-                        {saving ? 'Salvando...' : 'Publicar'}
+                        {saving ? <Loader2 className="animate-spin mr-2" size={16} /> : <Save className="mr-2" size={16} />}
+                        {saving ? 'Sal...' : 'Publicar'}
                     </Button>
                 </div>
             </header>
 
+            {/* Mobile Tabs */}
+            <div className="lg:hidden flex border-b border-slate-800 bg-slate-900 sticky top-0 z-30">
+                <button
+                    onClick={() => setViewMode('edit')}
+                    className={cn(
+                        "flex-1 py-3 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2",
+                        viewMode === 'edit'
+                            ? "border-blue-500 text-blue-500"
+                            : "border-transparent text-slate-400"
+                    )}
+                >
+                    <Edit3 size={16} /> Editar
+                </button>
+                <button
+                    onClick={() => setViewMode('preview')}
+                    className={cn(
+                        "flex-1 py-3 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2",
+                        viewMode === 'preview'
+                            ? "border-blue-500 text-blue-500"
+                            : "border-transparent text-slate-400"
+                    )}
+                >
+                    <Smartphone size={16} /> Visualizar
+                </button>
+            </div>
+
             {/* Main Split View */}
-            <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
+            <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden h-[calc(100vh-8rem)] lg:h-auto">
 
                 {/* Left Panel: Editor Form */}
-                <div className="lg:col-span-7 xl:col-span-8 bg-slate-900 border-r border-slate-800 overflow-y-auto custom-scrollbar">
-                    <div className="max-w-3xl mx-auto p-6 md:p-10 space-y-10">
+                <div className={cn(
+                    "lg:col-span-7 xl:col-span-8 bg-slate-900 border-r border-slate-800 overflow-y-auto custom-scrollbar h-full",
+                    viewMode === 'preview' ? "hidden lg:block" : "block"
+                )}>
+                    <div className="max-w-3xl mx-auto p-6 md:p-10 space-y-10 pb-32 lg:pb-10">
 
                         {/* 1. Layout / Template Selection */}
                         <section className="space-y-4">
@@ -180,24 +210,24 @@ export default function DesignEditorPage() {
                                         <div>
                                             <div className="flex justify-between mb-2">
                                                 <span className="text-xs text-slate-400">Cor Primária</span>
-                                                <span className="text-xs font-mono text-slate-500">{data.content.colors.primary}</span>
+                                                <span className="text-xs font-mono text-slate-500">{data.colors.primary}</span>
                                             </div>
                                             <input
                                                 type="color"
-                                                value={data.content.colors.primary}
-                                                onChange={(e) => updateContent('colors', { ...data.content.colors, primary: e.target.value })}
+                                                value={data.colors.primary}
+                                                onChange={(e) => updateData({ ...data, colors: { ...data.colors, primary: e.target.value } })}
                                                 className="w-full h-10 rounded-lg cursor-pointer bg-slate-900 border border-slate-700 p-1"
                                             />
                                         </div>
                                         <div>
                                             <div className="flex justify-between mb-2">
                                                 <span className="text-xs text-slate-400">Cor Secundária</span>
-                                                <span className="text-xs font-mono text-slate-500">{data.content.colors.secondary}</span>
+                                                <span className="text-xs font-mono text-slate-500">{data.colors.secondary}</span>
                                             </div>
                                             <input
                                                 type="color"
-                                                value={data.content.colors.secondary}
-                                                onChange={(e) => updateContent('colors', { ...data.content.colors, secondary: e.target.value })}
+                                                value={data.colors.secondary}
+                                                onChange={(e) => updateData({ ...data, colors: { ...data.colors, secondary: e.target.value } })}
                                                 className="w-full h-10 rounded-lg cursor-pointer bg-slate-900 border border-slate-700 p-1"
                                             />
                                         </div>
@@ -245,13 +275,24 @@ export default function DesignEditorPage() {
                 </div>
 
                 {/* Right Panel: Live Preview */}
-                <div className="lg:col-span-5 xl:col-span-4 bg-slate-950 relative hidden lg:flex items-center justify-center p-8 border-l border-slate-800 bg-grid-slate-900/[0.04]">
-                    <div className="absolute top-6 left-6 flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-slate-400 text-xs font-medium">
+                <div className={cn(
+                    "lg:col-span-5 xl:col-span-4 bg-slate-950 relative lg:flex items-center justify-center p-8 border-l border-slate-800 bg-grid-slate-900/[0.04]",
+                    viewMode === 'preview' ? "flex h-full w-full fixed inset-0 z-40 bg-slate-950 top-36 lg:relative lg:top-0 lg:h-auto" : "hidden"
+                )}>
+                    {viewMode === 'preview' && (
+                        <div className="absolute top-4 left-4 lg:hidden">
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-slate-400 text-xs font-medium">
+                                <Smartphone size={12} /> Mobile Preview
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="absolute top-6 left-6 flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-slate-400 text-xs font-medium hidden lg:flex">
                         <Smartphone size={12} /> Live Preview
                     </div>
 
                     {/* Phone Mockup Frame */}
-                    <div className="relative w-[340px] h-[680px] bg-slate-900 rounded-[3rem] border-[8px] border-slate-800 shadow-2xl flex flex-col overflow-hidden ring-4 ring-slate-900/50">
+                    <div id="tour-editor-preview" className="relative w-[340px] h-[680px] bg-slate-900 rounded-[3rem] border-[8px] border-slate-800 shadow-2xl flex flex-col overflow-hidden ring-4 ring-slate-900/50 scale-90 md:scale-100">
                         {/* Notch/Status Bar Area */}
                         <div className="h-8 bg-slate-900 w-full absolute top-0 z-50 flex justify-center">
                             <div className="h-5 w-32 bg-black rounded-b-xl"></div>
@@ -271,7 +312,7 @@ export default function DesignEditorPage() {
                         </div>
                     </div>
 
-                    <div className="absolute bottom-8 text-center w-full text-slate-500 text-xs">
+                    <div className="absolute bottom-8 text-center w-full text-slate-500 text-xs hidden lg:block">
                         Visualização mobile gerada em tempo real
                     </div>
                 </div>

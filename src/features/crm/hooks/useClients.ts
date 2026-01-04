@@ -1,10 +1,10 @@
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { Appointment } from '@/types/appointment';
-import { Client, SortField, SortOrder } from '../types';
+import { Client } from '../types';
 
 export function useClients() {
     const { user } = useAuth();

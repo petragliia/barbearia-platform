@@ -28,12 +28,6 @@ export async function runTest() {
     });
     console.log("Result 2:", result2);
 
-    console.log("\nUnknown Provider Test (Validating error handling):");
-    // @ts-ignore - Forcing invalid channel to test error handling
-    const result3 = await notificationDispatcher.dispatch({
-        barberId: "b1", customerId: "c1", to: "x", message: "x", channel: "sms" as any, type: "reminder_24h"
-    });
-    console.log("Result 3:", result3);
 
     console.log("\nTest Completed.");
 }

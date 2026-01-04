@@ -6,12 +6,12 @@ import { ArrowRight, Check, Scissors, Star, Zap, Store, Crown, Smartphone } from
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import GreetingFeature from '@/components/features/GreetingFeature';
-import Header from '@/components/marketing/Header';
-import HeroSection from '@/components/marketing/HeroSection';
-import TemplatesSection from '@/components/marketing/TemplatesSection';
-import FeaturesSection from '@/components/marketing/FeaturesSection';
-import PricingSection from '@/components/marketing/PricingSection';
-import FooterSection from '@/components/marketing/FooterSection';
+import Header from '@/features/marketing/components/Header';
+import HeroSection from '@/features/marketing/components/HeroSection';
+import TemplatesSection from '@/features/marketing/components/TemplatesSection';
+import FeaturesSection from '@/features/marketing/components/FeaturesSection';
+import PricingSection from '@/features/marketing/components/PricingSection';
+import FooterSection from '@/features/marketing/components/FooterSection';
 
 export default function LandingPage() {
     return (

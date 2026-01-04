@@ -1,39 +1,20 @@
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
 import { notFound } from 'next/navigation';
 import { BarbershopData } from '@/types/barbershop';
 import TemplateClassic from '@/features/templates/components/TemplateClassic';
 import TemplateModern from '@/features/templates/components/TemplateModern';
 import TemplateUrban from '@/features/templates/components/TemplateUrban';
+import { getBarbershopBySlug } from '@/features/barbershops/services/serverBarbershopService';
 
 export default async function PublicBarberPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
     console.log('Buscando slug:', slug);
 
-    const q = query(collection(db, 'barbershops'), where('slug', '==', slug));
-    const querySnapshot = await getDocs(q);
+    const data = await getBarbershopBySlug(slug);
 
-    if (querySnapshot.empty) {
+    if (!data) {
         console.log('Nenhuma barbearia encontrada para o slug:', slug);
         notFound();
     }
-
-    // Take the first document found
-    const doc = querySnapshot.docs[0];
-    let rawData = doc.data() as any;
-
-    // Normalization for legacy data
-    if (!rawData.colors && rawData.content?.colors) {
-        rawData.colors = rawData.content.colors;
-    }
-    if (!rawData.contact && rawData.content?.contact) {
-        rawData.contact = rawData.content.contact;
-    }
-    if (!rawData.products) {
-        rawData.products = [];
-    }
-
-    const data = rawData as BarbershopData;
 
     // Logic for "Dev Mode" (Bypass)
     const isDev = process.env.NODE_ENV === 'development';

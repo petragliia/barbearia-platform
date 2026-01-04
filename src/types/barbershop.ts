@@ -66,6 +66,7 @@ export interface BarbershopData {
     about_title_bottom?: string;
     features?: string[];
     showProductsSection?: boolean;
+    sections?: string[]; // Order of sections: 'hero', 'services', 'products', 'reviews', 'contact'
     availability?: {
       days: number[];
       hours: {

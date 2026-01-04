@@ -89,8 +89,8 @@ export function canUser(userPlan: PlanTier | undefined, feature: Exclude<Feature
 
 export function getLimit(userPlan: PlanTier | undefined, limit: 'maxServices'): number {
     const plan = userPlan || 'FREE';
-    // @ts-ignore - Explicitly accessing mapped limit
-    return PLAN_FEATURES[plan][limit] ?? 0;
+    // Explicitly accessing mapped limit with type assertion
+    return (PLAN_FEATURES[plan][limit] as number) ?? 0;
 }
 
 // Map Stripe Price IDs to Plan Tiers

@@ -1,15 +1,14 @@
 'use client';
 
 import { BarbershopData } from '@/types/barbershop';
-import { MapPin, Phone, Instagram, CheckCircle2, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useState } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import BookingModal from '@/features/booking/components/BookingModal';
-import HeroSectionParallax from '@/components/ui/HeroSectionParallax';
 import EditableText from '@/components/ui/EditableText';
 import EditableImage from '@/components/ui/EditableImage';
 import ImageUploader from '@/components/ui/ImageUploader';
-import ServiceCardClassic from '@/components/ui/ServiceCardClassic';
+import ServiceCardClassic from '@/features/marketing/components/ServiceCardClassic';
 import SectionHeading from '@/components/ui/SectionHeading';
 import FloatingCTA from '@/components/ui/FloatingCTA';
 import ReviewsSection from '@/features/reviews/components/ReviewsSection';
@@ -17,6 +16,8 @@ import { useTemplateEditor } from '@/features/templates/hooks/useTemplateEditor'
 import { useDemoStore } from '@/store/useDemoStore';
 import { Toast } from '@/components/ui/Toast';
 import ProductsSection from './ProductsSection';
+import Footer from '@/features/marketing/components/Footer';
+import FAQSection from '@/features/marketing/components/FAQSection';
 
 interface TemplateProps {
     data: BarbershopData;
@@ -28,9 +29,15 @@ export default function TemplateClassic({ data, isEditing = false, onUpdate }: T
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     const { showBooking, showMap, enablePremiumEffects } = useDemoStore();
-    const { content, services, gallery, name, contact, colors } = data;
 
-    const { updateContent, updateContact, updateService, updateGallery } = useTemplateEditor({
+    // Robust data extraction
+    const content = data.content || {};
+    const services = data.services || [];
+    const gallery = data.gallery || [];
+    const name = data.name || "Minha Barbearia";
+    const contact = data.contact || { phone: '', whatsapp: '', address: '', instagram: '' };
+
+    const { updateContent, updateService, updateGallery } = useTemplateEditor({
         data,
         onUpdate
     });
@@ -278,41 +285,39 @@ export default function TemplateClassic({ data, isEditing = false, onUpdate }: T
             </div>
 
             {/* FOOTER */}
+            {/* FOOTER */}
+            {data.faq && data.faq.length > 0 && (
+                <FAQSection
+                    faq={data.faq}
+                    isEditing={isEditing}
+                    onUpdate={(index, field, value) => {
+                        const newFaq = [...(data.faq || [])];
+                        newFaq[index] = { ...newFaq[index], [field]: value };
+                        // We need a wrapper to call onUpdate with full data
+                        if (onUpdate) {
+                            onUpdate({ ...data, faq: newFaq });
+                        }
+                    }}
+                    onAdd={() => {
+                        const newFaq = [...(data.faq || []), { question: "Nova Pergunta", answer: "Nova Resposta" }];
+                        if (onUpdate) onUpdate({ ...data, faq: newFaq });
+                    }}
+                    onRemove={(index) => {
+                        const newFaq = [...(data.faq || [])];
+                        newFaq.splice(index, 1);
+                        if (onUpdate) onUpdate({ ...data, faq: newFaq });
+                    }}
+                    templateId="classic"
+                />
+            )}
+
             {showMap && (
-                <footer className="bg-black py-20 px-6 border-t border-classic-gold/30">
-                    <div className="container mx-auto max-w-4xl text-center">
-                        <h2 className="text-3xl font-serif text-classic-gold mb-8">{name}</h2>
-
-                        <div className="flex flex-col md:flex-row justify-center gap-12 mb-12 text-classic-cream/80 font-sans tracking-wide">
-                            <div className="flex items-center justify-center gap-3">
-                                <Phone className="w-5 h-5 text-classic-gold" />
-                                <EditableText
-                                    as="span"
-                                    isEditing={isEditing}
-                                    value={contact.phone}
-                                    onChange={(val) => onUpdate && onUpdate({ ...data, contact: { ...contact, phone: val } })}
-                                />
-                            </div>
-                            <div className="flex items-center justify-center gap-3">
-                                <MapPin className="w-5 h-5 text-classic-gold" />
-                                <EditableText
-                                    as="span"
-                                    isEditing={isEditing}
-                                    value={contact.address}
-                                    onChange={(val) => onUpdate && onUpdate({ ...data, contact: { ...contact, address: val } })}
-                                />
-                            </div>
-                            <div className="flex items-center justify-center gap-3">
-                                <Instagram className="w-5 h-5 text-classic-gold" />
-                                <span>@{name.replace(/\s+/g, '').toLowerCase()}</span>
-                            </div>
-                        </div>
-
-                        <p className="text-classic-gold/30 text-xs tracking-widest uppercase">
-                            © {new Date().getFullYear()} {name}. All rights reserved.
-                        </p>
-                    </div>
-                </footer>
+                <Footer
+                    data={data}
+                    isEditing={isEditing}
+                    onUpdate={onUpdate}
+                    templateId="classic"
+                />
             )}
         </div>
     );
