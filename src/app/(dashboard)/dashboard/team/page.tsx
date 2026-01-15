@@ -2,6 +2,8 @@
 
 import { useAuth } from '@/features/auth/context/AuthContext';
 import TeamManagement from '@/features/team/components/TeamManagement';
+import { useSubscription } from '@/features/subscription/hooks/useSubscription';
+import { UpgradeState } from '@/components/UpgradeState';
 import { Loader2 } from 'lucide-react';
 
 export default function TeamPage() {
@@ -15,6 +17,12 @@ export default function TeamPage() {
         );
     }
 
+    const { checkAccess } = useSubscription();
+
+    if (!checkAccess('team')) {
+        return <UpgradeState featureName="Gestão de Equipe" description="Gerencie múltiplos profissionais, comissões e horários individuais." />;
+    }
+
     return (
         <div className="max-w-7xl mx-auto">
             <div className="mb-8">
@@ -23,7 +31,7 @@ export default function TeamPage() {
             </div>
 
             <div className="bg-slate-900 rounded-xl border border-slate-800 shadow-xl overflow-hidden">
-                <TeamManagement barbershopId={user.uid} />
+                <TeamManagement barbershopId={user.id} />
             </div>
         </div>
     );

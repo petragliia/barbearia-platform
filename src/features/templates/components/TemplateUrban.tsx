@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Scissors, Menu, X } from 'lucide-react';
@@ -181,12 +183,19 @@ export default function TemplateUrban({ data, isEditing = false, onUpdate }: Tem
 
             {/* Hero Section */}
             <header className="relative min-h-screen flex items-center pt-20 overflow-hidden">
+                import Image from 'next/image';
+
+                // ... (Handling import via separate call again or multi-replace)
+
                 {/* Background Image with Overlay */}
                 <div className="absolute inset-0 z-0">
-                    <img
-                        src={content.hero_image}
+                    <Image
+                        src={content.hero_image || '/placeholder-hero.jpg'}
                         alt="Hero"
-                        className="w-full h-full object-cover opacity-60 grayscale md:grayscale-0"
+                        fill
+                        priority
+                        className="object-cover opacity-60 grayscale md:grayscale-0"
+                        sizes="100vw"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/80 to-transparent"></div>
                     <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-[#050505]/50 to-transparent"></div>

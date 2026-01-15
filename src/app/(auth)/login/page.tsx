@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Lock, Loader2 } from 'lucide-react';
 import Link from 'next/link';
@@ -14,18 +13,23 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [resetSent, setResetSent] = useState(false);
     const router = useRouter();
+    const supabase = createClient();
 
     const handleGoogleLogin = async () => {
         setLoading(true);
         setError('');
         try {
-            const provider = new GoogleAuthProvider();
-            await signInWithPopup(auth, provider);
-            router.push('/dashboard');
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: `${window.location.origin}/api/auth/callback`
+                }
+            });
+            if (error) throw error;
+            // Supabase redirects to provider, so no router.push here needed immediately
         } catch (err: any) {
             console.error(err);
             setError('Erro ao entrar com Google. Tente novamente.');
-        } finally {
             setLoading(false);
         }
     };
@@ -34,14 +38,40 @@ export default function LoginPage() {
         e.preventDefault();
         setLoading(true);
         setError('');
+        console.log('[Login] Iniciando tentativa de login:', email);
 
         try {
-            await signInWithEmailAndPassword(auth, email, password);
+            // Helper for timeout
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('TIMEOUT')), 15000)
+            );
+
+            const loginPromise = supabase.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            console.log('[Login] Aguardando Supabase...');
+
+            // Race between login and 15s timeout
+            const result = await Promise.race([loginPromise, timeoutPromise]) as any;
+
+            if (result.error) {
+                console.error('[Login] Erro retornado pelo Supabase:', result.error);
+                throw result.error;
+            }
+
+            console.log('[Login] Sucesso! Redirecionando...');
             router.push('/dashboard');
         } catch (err: any) {
-            console.error(err);
-            setError('Email ou senha inválidos.');
+            console.error('[Login] Catch Error:', err);
+            if (err.message === 'TIMEOUT') {
+                setError('O servidor demorou muito para responder. Verifique sua conexão.');
+            } else {
+                setError('Email ou senha inválidos.');
+            }
         } finally {
+            console.log('[Login] Finalizando loading state');
             setLoading(false);
         }
     };
@@ -52,7 +82,10 @@ export default function LoginPage() {
             return;
         }
         try {
-            await sendPasswordResetEmail(auth, email);
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}/auth/update-password`,
+            });
+            if (error) throw error;
             setResetSent(true);
             setError('');
         } catch (err: any) {

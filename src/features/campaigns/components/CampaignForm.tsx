@@ -14,7 +14,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Send, Users } from 'lucide-react';
+import { Send, Users, Loader2 } from 'lucide-react';
+import { campaignService } from '../services/CampaignService';
+import { useAuth } from '@/features/auth/context/AuthContext';
+
+interface Props {
+    onSuccess?: () => void;
+}
 
 /**
  * Component for creating and sending mass campaigns
@@ -24,17 +30,36 @@ import { Send, Users } from 'lucide-react';
  * Structure: { title: string, message: string, audience: string, sentAt: timestamp, status: 'sent' | 'draft' }
  */
 
-export default function CampaignForm() {
+export default function CampaignForm({ onSuccess }: Props) {
+    const { user } = useAuth();
+    const [loading, setLoading] = useState(false);
     const [title, setTitle] = useState('');
     const [message, setMessage] = useState('');
     const [audience, setAudience] = useState('all');
 
-    const handleSend = () => {
-        console.log('Sending campaign:', { title, message, audience });
-        // TODO: Integrate with backend
-        toast.success(`Campanha "${title}" disparada!`, {
-            description: `Enviada para o público: ${audience === 'all' ? 'Todos os Clientes' : audience}`
-        });
+    const handleSend = async () => {
+        if (!user) return;
+        setLoading(true);
+        try {
+            await campaignService.createCampaign({
+                barbershop_id: user.id,
+                title,
+                type: 'marketing',
+                channel: 'whatsapp', // Defaulting to WhatsApp for MVP
+                config: { message, audience },
+                active: true
+            });
+            toast.success(`Campanha "${title}" disparada!`);
+            onSuccess?.();
+            // Reset form
+            setTitle('');
+            setMessage('');
+        } catch (error) {
+            console.error(error);
+            toast.error("Erro ao criar campanha");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -98,7 +123,7 @@ export default function CampaignForm() {
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                     size="lg"
                 >
-                    <Send className="mr-2 h-4 w-4" />
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                     Disparar Agora
                 </Button>
             </div>

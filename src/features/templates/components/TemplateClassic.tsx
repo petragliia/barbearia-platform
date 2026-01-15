@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 import { BarbershopData } from '@/types/barbershop';
 import { X } from 'lucide-react';
 import { useState } from 'react';
@@ -16,6 +18,7 @@ import { useTemplateEditor } from '@/features/templates/hooks/useTemplateEditor'
 import { useDemoStore } from '@/store/useDemoStore';
 import { Toast } from '@/components/ui/Toast';
 import ProductsSection from './ProductsSection';
+import GalleryGrid from './shared/GalleryGrid';
 import Footer from '@/features/marketing/components/Footer';
 import FAQSection from '@/features/marketing/components/FAQSection';
 
@@ -76,15 +79,27 @@ export default function TemplateClassic({ data, isEditing = false, onUpdate }: T
 
             {/* HERO SECTION */}
             <header className="relative h-[90vh] md:h-screen overflow-hidden flex items-center justify-center">
+                import Image from 'next/image';
+
+                // ... (in the file header usually, but I need to be careful not to double import if I don't see it. It is not imported yet). 
+                // Wait, replace_file_content works on chunks. I need to add import first?
+                // Or I can add import in a separate call or same call?
+                // I'll add import at the top first, then replace. Or use multi_replace.
+                // Let's use multi_replace to add import and replace image.
+
+                // ... 
                 <motion.div
                     style={{ y: enablePremiumEffects ? heroY : 0, opacity: enablePremiumEffects ? heroOpacity : 1 }}
                     className="absolute inset-0 z-0 bg-black"
                 >
                     <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-classic-bg z-10" />
-                    <img
-                        src={content.hero_image}
+                    <Image
+                        src={content.hero_image || '/placeholder-hero.jpg'}
                         alt="Hero"
-                        className="w-full h-full object-cover object-center opacity-60"
+                        fill
+                        priority
+                        className="object-cover object-center opacity-60"
+                        sizes="100vw"
                     />
                     {isEditing && (
                         <div className="absolute top-4 right-4 z-50">
@@ -216,59 +231,15 @@ export default function TemplateClassic({ data, isEditing = false, onUpdate }: T
                         onSubtitleChange={(val) => updateContent('gallery_subtitle', val)}
                     />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-[250px]">
-                        {gallery.map((img, i) => (
-                            <motion.div
-                                key={i}
-                                initial={enablePremiumEffects ? { opacity: 0, y: 50 } : { opacity: 1, y: 0 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: i * 0.1 }}
-                                className={`relative group cursor-pointer overflow-hidden rounded-lg ${gallery.length === 1 ? 'aspect-[16/9]' :
-                                    gallery.length === 3 && i === 0 ? 'md:col-span-2 md:row-span-2 aspect-[4/3]' :
-                                        'aspect-square'
-                                    }`}
-                            >
-                                <div className="absolute inset-0 border border-[var(--color-primary)] opacity-30 translate-x-4 translate-y-4 group-hover:translate-x-2 group-hover:translate-y-2 transition-transform duration-500 pointer-events-none"></div>
-                                <div className="relative w-full h-full overflow-hidden grayscale group-hover:grayscale-0 transition-all duration-700">
-                                    <EditableImage
-                                        src={img}
-                                        alt={`Gallery ${i}`}
-                                        isEditing={isEditing}
-                                        onUpload={(url) => updateGallery(i, url)}
-                                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
-                                        containerClassName="w-full h-full"
-                                    />
-                                    {isEditing && (
-                                        <div className="absolute top-2 right-2 z-20">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (!onUpdate) return;
-                                                    const newGallery = gallery.filter((_, index) => index !== i);
-                                                    onUpdate({ ...data, gallery: newGallery });
-                                                }}
-                                                className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
-                                            >
-                                                <X size={16} />
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            </motion.div>
-                        ))}
-                        {isEditing && gallery.length < 6 && (
-                            <div className="flex items-center justify-center border border-dashed border-classic-gold/30 bg-classic-gold/5">
-                                <ImageUploader
-                                    onUpload={(url) => {
-                                        if (!onUpdate) return;
-                                        onUpdate({ ...data, gallery: [...gallery, url] });
-                                    }}
-                                    label="Adicionar Foto"
-                                />
-                            </div>
+                    <GalleryGrid
+                        images={gallery}
+                        isEditing={isEditing}
+                        onUpdate={(newGallery) => onUpdate && onUpdate({ ...data, gallery: newGallery })}
+                        variant="classic"
+                        renderOverlay={() => (
+                            <div className="absolute inset-0 border border-[var(--color-primary)] opacity-30 translate-x-4 translate-y-4 group-hover:translate-x-2 group-hover:translate-y-2 transition-transform duration-500 pointer-events-none"></div>
                         )}
-                    </div>
+                    />
                 </div>
             </section>
 

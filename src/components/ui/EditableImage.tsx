@@ -1,9 +1,9 @@
-
 'use client';
 
+import Image from 'next/image';
 import { clsx } from 'clsx';
 import ImageUploader from './ImageUploader';
-import { Edit, Image as ImageIcon } from 'lucide-react';
+import { Image as ImageIcon } from 'lucide-react';
 
 interface EditableImageProps {
     src: string;
@@ -23,12 +23,15 @@ export default function EditableImage({
     containerClassName
 }: EditableImageProps) {
     return (
-        <div className={clsx("relative group", containerClassName)}>
-            <img
-                src={src}
+        <div className={clsx("relative group overflow-hidden", containerClassName)}>
+            <Image
+                src={src || '/placeholder.jpg'} // Fallback
                 alt={alt}
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
                 className={clsx(
                     className,
+                    "object-cover",
                     isEditing && "group-hover:opacity-80 transition-opacity"
                 )}
             />

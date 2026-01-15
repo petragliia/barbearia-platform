@@ -15,10 +15,15 @@ export interface FAQItem {
 
 export interface BarbershopData {
   uid: string; // Add this
+  ownerId: string; // Added to match service usage
   id: string;
   slug: string;
   name: string; // Moved to root
   isPublished: boolean; // Required, default false
+  // Feature Flags / Plan Limits
+  plan_tier?: 'free' | 'pro' | 'business';
+  max_barbers?: number;
+  whatsapp_enabled?: boolean;
   colors: {
     primary: string;
     secondary: string;
@@ -45,7 +50,7 @@ export interface BarbershopData {
     status: 'active' | 'past_due' | 'canceled' | 'trialing';
     renewsAt: string;
   };
-  template_id: 'classic' | 'modern' | 'urban';
+  template_id: 'classic' | 'modern' | 'urban' | 'volt';
   content: {
     // Legacy / Specific template fields
     description: string;

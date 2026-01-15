@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
+import { createClient } from '@/lib/supabase/client';
 import CalendarView from '@/features/calendar/components/CalendarView';
 import { Appointment } from '@/types/appointment';
 import { Loader2 } from 'lucide-react';
@@ -12,26 +11,40 @@ export default function SchedulePage() {
     const { user } = useAuth();
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
+    const supabase = createClient();
 
     useEffect(() => {
         if (!user) return;
+        const userId = (user as any).uid || user.id;
 
-        const q = query(
-            collection(db, 'appointments'),
-            where('barbershopId', '==', user.uid)
-        );
+        const fetchAppointments = async () => {
+            const { data } = await supabase
+                .from('appointments')
+                .select('*')
+                .eq('barbershop_id', userId);
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            })) as Appointment[];
-
-            setAppointments(data);
+            if (data) {
+                const mappedData: Appointment[] = data.map((item: any) => ({
+                    id: item.id,
+                    customerName: item.customer_name,
+                    customerPhone: item.customer_phone,
+                    date: item.date,
+                    time: item.time,
+                    serviceName: item.service_name,
+                    price: item.service_price,
+                    status: item.status,
+                    barbershopId: item.barbershop_id,
+                    createdAt: item.created_at,
+                    barberId: item.barber_id || '',
+                    barberName: item.barber_name || ''
+                }));
+                setAppointments(mappedData);
+            }
             setLoading(false);
-        });
+        };
 
-        return () => unsubscribe();
+        fetchAppointments();
+        // Optional: Set up real-time subscription here if needed
     }, [user]);
 
     if (loading) {

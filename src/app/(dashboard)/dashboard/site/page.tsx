@@ -3,8 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
 import { BarbershopData } from '@/types/barbershop';
 import { Loader2 } from 'lucide-react';
 import TemplateClassic from '@/features/templates/components/TemplateClassic';
@@ -16,8 +14,9 @@ import { Toast } from '@/components/ui/Toast';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
 import EditorSidebar from '@/features/editor/components/EditorSidebar';
-import { useEditor } from '@/hooks/useEditor';
+import { useEditor } from '@/features/editor/hooks/useEditor';
 import { useEditorStore } from '@/store/useEditorStore';
+import { getBarbershop } from '@/lib/services/barbershopService';
 
 export default function SiteEditorPage() {
     const { user } = useAuth();
@@ -43,11 +42,9 @@ export default function SiteEditorPage() {
         const fetchBarbershop = async () => {
             if (!user) return;
             try {
-                const docRef = doc(db, 'barbershops', user.uid);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const rawData = docSnap.data() as any;
-
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const rawData = await getBarbershop(user.id) as any;
+                if (rawData) {
                     // Migration/Normalization for legacy data structure
                     if (!rawData.colors && rawData.content?.colors) {
                         rawData.colors = rawData.content.colors;
@@ -189,3 +186,4 @@ export default function SiteEditorPage() {
         </div>
     );
 }
+;

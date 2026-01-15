@@ -1,10 +1,10 @@
 import 'server-only';
-import { dbAdmin } from '@/lib/firebase-admin';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { Subscription, PlanTier, SubscriptionStatus } from '../types';
 import { STRIPE_PRICE_MAP } from '@/config/plans';
 
 /**
- * Updates the user's subscription status in Firestore based on Stripe webhook events.
+ * Updates the user's subscription status in Supabase based on Stripe webhook events.
  */
 export async function updateUserSubscription(
     stripeCustomerId: string,
@@ -12,61 +12,64 @@ export async function updateUserSubscription(
     userId?: string
 ) {
     try {
-        let userDoc;
+        let finalUserId = userId;
 
-        // 1. If explicit userId provided (e.g. from session metadata), use it first.
-        // This handles race conditions where stripeCustomerId might not be in Firestore yet.
-        if (userId) {
-            const docRef = dbAdmin.collection('users').doc(userId);
-            const docSnapshot = await docRef.get();
-            if (docSnapshot.exists) {
-                userDoc = docSnapshot;
-                // Ensure stripeCustomerId is set if missing
-                if (data.stripeCustomerId && docSnapshot.data()?.stripeCustomerId !== data.stripeCustomerId) {
-                    await docRef.update({ stripeCustomerId: data.stripeCustomerId });
-                }
+        // 1. If no userId provided, lookup by stripe_customer_id in profiles/users table
+        // We assume we store stripe_customer_id in 'profiles' or 'users' (metadata).
+        // Let's assume 'profiles' table has it for now.
+
+        if (!finalUserId) {
+            const { data: userProfile, error } = await supabaseAdmin
+                .from('profiles') // or check auth.users via listUsers (slow)
+                .select('id')
+                .eq('stripe_customer_id', stripeCustomerId)
+                .single();
+
+            if (userProfile) {
+                finalUserId = userProfile.id;
             }
         }
 
-        // 2. If no userId found/provided, fallback to searching by stripeCustomerId
-        if (!userDoc) {
-            const usersRef = dbAdmin.collection('users');
-            const snapshot = await usersRef
-                .where('stripeCustomerId', '==', stripeCustomerId)
-                .limit(1)
-                .get();
-
-            if (!snapshot.empty) {
-                userDoc = snapshot.docs[0];
-            }
-        }
-
-        if (!userDoc) {
-            console.error(`[SubscriptionService] User not found for Stripe Customer ID: ${stripeCustomerId} (User ID provided: ${userId})`);
+        if (!finalUserId) {
+            console.error(`[SubscriptionService] User not found for Stripe Customer ID: ${stripeCustomerId}`);
             return { success: false, error: 'User not found' };
         }
 
-        const finalUserId = userDoc.id;
+        // 2. Update user profile/subscription data
+        // We likely store subscription info in 'profiles' or a separate 'subscriptions' table.
+        // Based on previous code: `subscriptionStatus`, `isPremium`, `subscription` object were on user doc.
+        // We map to 'profiles' columns.
 
-        // 3. Update user document
-        await userDoc.ref.update({
-            subscriptionStatus: data.status, // Root level field for easy querying
-            isPremium: data.status === 'active' || data.status === 'trialing',
-            subscription: {
+        const updates = {
+            subscription_status: data.status,
+            is_premium: data.status === 'active' || data.status === 'trialing',
+            stripe_customer_id: stripeCustomerId, // Ensure set
+            // Store complex subscription object in a jsonb column if exists, or map fields
+            subscription_data: {
                 ...data,
-                updatedAt: new Date().toISOString(),
-            },
-        });
+                updatedAt: new Date().toISOString()
+            }
+        };
 
-        // 4. Update Custom Claims
+        const { error: updateError } = await supabaseAdmin
+            .from('profiles')
+            .update(updates)
+            .eq('id', finalUserId);
+
+        if (updateError) throw updateError;
+
+        // 3. Update Custom Claims (App Metadata in Supabase)
         /* 
-           This allows us to check "request.auth.token.isPremium" in Security Rules 
-           and "user.claims.isPremium" in Client SDK. 
+           This allows us to check "app_metadata.is_premium" in RLS.
         */
         const isPremium = data.status === 'active' || data.status === 'trialing';
-        await import('@/lib/firebase-admin').then(({ authAdmin }) =>
-            authAdmin.setCustomUserClaims(finalUserId, { isPremium, plan: data.plan })
+
+        const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
+            finalUserId,
+            { app_metadata: { is_premium: isPremium, plan: data.plan } }
         );
+
+        if (authError) throw authError;
 
         console.log(`[SubscriptionService] Updated subscription for user ${finalUserId}. Premium: ${isPremium}`);
         return { success: true };
@@ -79,11 +82,17 @@ export async function updateUserSubscription(
 /**
  * Updates the user's Stripe Customer ID if it doesn't exist.
  */
+/**
+ * Updates the user's Stripe Customer ID if it doesn't exist.
+ */
 export async function setStripeCustomerId(userId: string, stripeCustomerId: string) {
     try {
-        await dbAdmin.collection('users').doc(userId).update({
-            stripeCustomerId: stripeCustomerId
-        });
+        const { error } = await supabaseAdmin
+            .from('profiles')
+            .update({ stripe_customer_id: stripeCustomerId })
+            .eq('id', userId);
+
+        if (error) throw error;
     } catch (error) {
         console.error('Error setting stripe customer ID:', error);
         throw error;

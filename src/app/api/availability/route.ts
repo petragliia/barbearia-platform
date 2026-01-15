@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { createClient } from '@/lib/supabase/server';
 import { getSlots, isOverlapping } from '@/lib/date-utils';
 import { startOfDay, endOfDay, parseISO, format } from 'date-fns';
 
@@ -15,26 +14,22 @@ export async function GET(request: Request) {
     }
 
     try {
-        // 1. Fetch Barbershop Settings
-        const barbershopRef = collection(db, 'barbershops');
-        // Since we store by ID (user.uid), we can try to get the doc directly if we knew the collection structure perfectly.
-        // But the query above used 'barbershopId' field in appointments.
-        // Let's assume the barbershopId param IS the document ID in 'barbershops' collection.
+        const supabase = await createClient();
 
-        // Fetch the barbershop document to get availability settings
-        const { doc, getDoc } = await import('firebase/firestore');
-        const barbershopDocRef = doc(db, 'barbershops', barbershopId);
-        const barbershopSnap = await getDoc(barbershopDocRef);
+        // 1. Fetch Barbershop Settings
+        // Using 'id' from barbershops table.
+        const { data: barbershopData, error: bsError } = await supabase
+            .from('barbershops')
+            .select('content')
+            .eq('id', barbershopId)
+            .single();
 
         let openingHours = { start: '09:00', end: '18:00' };
         let workingDays = [1, 2, 3, 4, 5, 6]; // Default Mon-Sat
 
-        if (barbershopSnap.exists()) {
-            const data = barbershopSnap.data();
-            if (data.content?.availability) {
-                openingHours = data.content.availability.hours;
-                workingDays = data.content.availability.days;
-            }
+        if (barbershopData?.content?.availability) {
+            openingHours = barbershopData.content.availability.hours;
+            workingDays = barbershopData.content.availability.days;
         }
 
         // 2. Parse Date and Define Range
@@ -54,31 +49,24 @@ export async function GET(request: Request) {
             });
         }
 
-        const start = startOfDay(selectedDate);
-        const end = endOfDay(selectedDate);
+        const start = startOfDay(selectedDate).toISOString();
+        const end = endOfDay(selectedDate).toISOString();
 
         // 3. Fetch Existing Appointments
-        const appointmentsRef = collection(db, 'appointments');
-        const q = query(
-            appointmentsRef,
-            where('barbershopId', '==', barbershopId),
-            where('date', '>=', Timestamp.fromDate(start)),
-            where('date', '<=', Timestamp.fromDate(end))
-        );
+        const { data: appointmentsData, error: appError } = await supabase
+            .from('appointments')
+            .select('date, duration, status')
+            .eq('barbershop_id', barbershopId)
+            .gte('date', start)
+            .lte('date', end)
+            .neq('status', 'cancelled');
 
-        const querySnapshot = await getDocs(q);
-        const appointments = querySnapshot.docs.map(doc => {
-            const data = doc.data();
-            // Handle cancelled appointments - don't block slots
-            if (data.status === 'cancelled') return null;
-
-            return {
-                time: format(data.date.toDate(), 'HH:mm'), // Extract time from Firestore Timestamp
-                service: {
-                    duration: '30 min' // Default or fetch if stored
-                }
-            };
-        }).filter(Boolean) as { time: string; service: { duration: string } }[];
+        const appointments = (appointmentsData || []).map(app => ({
+            time: format(new Date(app.date), 'HH:mm'), // ISO String to Date to Format
+            service: {
+                duration: app.duration ? `${app.duration} min` : '30 min'
+            }
+        }));
 
         // 4. Generate All Possible Slots based on dynamic hours
         const allSlots = getSlots(openingHours.start, openingHours.end, 30);

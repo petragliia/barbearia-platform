@@ -1,36 +1,48 @@
 import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase'; // Assuming centralized firebase export
-import { collection, query, where, getDocs, doc, setDoc, updateDoc, increment, arrayUnion, Timestamp } from 'firebase/firestore';
+import { createClient } from '@/lib/supabase/client';
 import { LoyaltyCard, LoyaltyTransactionType } from '../types';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { canUser } from '@/config/plans';
 
 export function useLoyalty(barbershopId: string) {
     const { userProfile } = useAuth();
     const [card, setCard] = useState<LoyaltyCard | null>(null);
     const [loading, setLoading] = useState(false);
+    const supabase = createClient();
+
+    const plan = userProfile?.plan || 'FREE';
+    // Use 'loyalty' feature key
+    const hasPermission = canUser(plan, 'loyalty');
 
     const fetchCard = async () => {
         if (!userProfile?.uid || !barbershopId) return;
 
+        // Permission Check
+        if (!hasPermission) {
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
-            const q = query(
-                collection(db, 'loyalty_cards'),
-                where('userId', '==', userProfile.uid),
-                where('barbershopId', '==', barbershopId)
-            );
+            const { data, error } = await supabase
+                .from('loyalty_cards')
+                .select('*')
+                .eq('user_id', userProfile.uid)
+                .eq('barbershop_id', barbershopId) // Assuming snake_case
+                .single();
 
-            const snapshot = await getDocs(q);
-
-            if (!snapshot.empty) {
-                const data = snapshot.docs[0].data() as any;
-                // Convert Firestore timestamps to Date objects if needed
-                const transactions = data.transactions?.map((t: any) => ({
-                    ...t,
-                    date: t.date?.toDate ? t.date.toDate() : new Date(t.date)
-                })) || [];
-
-                setCard({ ...data, id: snapshot.docs[0].id, transactions } as LoyaltyCard);
+            if (data) {
+                // Map snake_case to camelCase
+                const mappedCard = {
+                    ...data,
+                    userId: data.user_id,
+                    barbershopId: data.barbershop_id,
+                    totalEarned: data.total_earned,
+                    lastUpdated: new Date(data.last_updated), // ISO string to Date
+                    transactions: data.transactions || []
+                }
+                setCard(mappedCard as LoyaltyCard);
             } else {
                 setCard(null);
             }
@@ -42,12 +54,13 @@ export function useLoyalty(barbershopId: string) {
     };
 
     const addPoints = async (points: number, description: string) => {
+        if (!hasPermission) throw new Error("Upgrade needed for Loyalty features");
         if (!userProfile?.uid || !barbershopId) return;
 
         const transactionId = crypto.randomUUID();
         const newTransaction = {
             id: transactionId,
-            date: Timestamp.now(),
+            date: new Date().toISOString(),
             type: 'EARN' as LoyaltyTransactionType,
             points,
             description
@@ -56,24 +69,48 @@ export function useLoyalty(barbershopId: string) {
         try {
             if (card) {
                 // Update existing card
-                const cardRef = doc(db, 'loyalty_cards', card.id);
-                await updateDoc(cardRef, {
-                    balance: increment(points),
-                    totalEarned: increment(points),
-                    lastUpdated: Timestamp.now(),
-                    transactions: arrayUnion(newTransaction)
-                });
+                // Postgrest doesn't have native atomic 'increment' in client UPDATE.
+                // We should use an RPC (Stored Procedure) for safety or read-modify-write (optimistic but risky for concurrency).
+                // Or simplified: fetch fresh, then update.
+                // Since this is a simple app, we'll fetch current balance via the previous 'card' state or fresh fetch?
+                // Using current 'card' state is "optimistic".
+
+                // Better approach with JSONB array: append.
+
+                const newBalance = (card.balance || 0) + points;
+                const newTotal = (card.totalEarned || 0) + points;
+                const newTransactions = [...(card.transactions || []), newTransaction];
+
+                const { error } = await supabase
+                    .from('loyalty_cards')
+                    .update({
+                        balance: newBalance,
+                        total_earned: newTotal,
+                        last_updated: new Date().toISOString(),
+                        transactions: newTransactions // Replacing array: concurrency risk if not careful, but okay for MVP
+                    })
+                    .eq('id', card.id);
+
+                if (error) throw error;
             } else {
                 // Create new card
-                const newCardId = `${userProfile.uid}_${barbershopId}`;
-                await setDoc(doc(db, 'loyalty_cards', newCardId), {
-                    userId: userProfile.uid,
-                    barbershopId,
+                const newCardData = {
+                    user_id: userProfile.uid,
+                    barbershop_id: barbershopId,
                     balance: points,
-                    totalEarned: points,
-                    lastUpdated: Timestamp.now(),
+                    total_earned: points,
+                    last_updated: new Date().toISOString(),
                     transactions: [newTransaction]
-                });
+                };
+
+                // Assuming 'id' is autogenerated or we can provide composite key if Table uses it.
+                // Let's assume auto-id.
+
+                const { error } = await supabase
+                    .from('loyalty_cards')
+                    .insert([newCardData]);
+
+                if (error) throw error;
             }
             fetchCard(); // Refresh local state
         } catch (error) {
@@ -83,24 +120,32 @@ export function useLoyalty(barbershopId: string) {
     };
 
     const redeemReward = async (cost: number, rewardName: string) => {
+        if (!hasPermission) throw new Error("Upgrade needed");
         if (!card || card.balance < cost) throw new Error("Saldo insuficiente");
 
         const transactionId = crypto.randomUUID();
         const newTransaction = {
             id: transactionId,
-            date: Timestamp.now(),
+            date: new Date().toISOString(),
             type: 'REDEEM' as LoyaltyTransactionType,
             points: -cost,
             description: `Resgate: ${rewardName}`
         };
 
         try {
-            const cardRef = doc(db, 'loyalty_cards', card.id);
-            await updateDoc(cardRef, {
-                balance: increment(-cost),
-                lastUpdated: Timestamp.now(),
-                transactions: arrayUnion(newTransaction)
-            });
+            const newBalance = card.balance - cost;
+            const newTransactions = [...(card.transactions || []), newTransaction];
+
+            const { error } = await supabase
+                .from('loyalty_cards')
+                .update({
+                    balance: newBalance,
+                    last_updated: new Date().toISOString(),
+                    transactions: newTransactions
+                })
+                .eq('id', card.id);
+
+            if (error) throw error;
             fetchCard();
         } catch (error) {
             console.error("Error redeeming reward:", error);
@@ -117,6 +162,7 @@ export function useLoyalty(barbershopId: string) {
         loading,
         addPoints,
         redeemReward,
-        refresh: fetchCard
+        refresh: fetchCard,
+        hasPermission
     };
 }

@@ -1,14 +1,13 @@
 import { notFound } from 'next/navigation';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { getBarbershopBySlug } from '@/features/barbershops/services/serverBarbershopService';
 import TemplateClassic from '@/features/templates/components/TemplateClassic';
 import TemplateModern from '@/features/templates/components/TemplateModern';
 import TemplateUrban from '@/features/templates/components/TemplateUrban';
 import { BarbershopData } from '@/types/barbershop';
 import FAQSection from '@/features/marketing/components/FAQSection';
 import ContactSection from '@/features/marketing/components/ContactSection';
-import GreetingFeature from '@/components/features/GreetingFeature';
-import PageViewTracker from '@/components/features/PageViewTracker';
+import GreetingFeature from '@/features/onboarding/components/GreetingFeature';
+import PageViewTracker from '@/features/analytics/components/PageViewTracker';
 import ShopSection from '@/features/shop/components/ShopSection';
 import CartDrawer from '@/features/cart/components/CartDrawer';
 import CartFloatingButton from '@/components/ui/CartFloatingButton';
@@ -25,15 +24,11 @@ export default async function BarberPage({ params }: PageProps) {
     console.log('[BarberPage] Rendering for slug:', slug);
 
     try {
-        const q = query(collection(db, 'barbershops'), where('slug', '==', slug));
-        const querySnapshot = await getDocs(q);
+        const data = await getBarbershopBySlug(slug);
 
-        if (querySnapshot.empty) {
+        if (!data) {
             notFound();
         }
-
-        const doc = querySnapshot.docs[0];
-        const data = doc.data() as BarbershopData;
 
         // Check if site is published (bypass in Dev Mode)
         const isDev = process.env.NODE_ENV === 'development';
@@ -54,13 +49,13 @@ export default async function BarberPage({ params }: PageProps) {
 
         return (
             <div className="bg-white min-h-screen relative">
-                <PageViewTracker barbershopId={doc.id} />
+                {/* <PageViewTracker barbershopId={data.id || data.ownerId} /> */}
                 <GreetingFeature />
 
                 <TemplateComponent data={data} />
 
                 {/* Shop / Products Section */}
-                <ShopSection barberId={doc.id} theme={templateId} />
+                <ShopSection barberId={data.ownerId} theme={templateId} />
 
                 {data.faq && <FAQSection faq={data.faq} />}
                 <ContactSection contact={data.contact} />

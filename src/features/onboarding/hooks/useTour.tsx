@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
-import { dashboardSteps, editorSteps } from '@/lib/tour-config';
+import { dashboardSteps, editorSteps } from '@/lib/tour-steps';
 
 type TourType = 'dashboard' | 'editor';
 

@@ -1,5 +1,4 @@
-import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { createClient } from "@/lib/supabase/client";
 import { NotificationChannel, NotificationType } from "../types";
 import { NotificationProvider } from "../providers/NotificationProvider";
 import { ConsoleProvider } from "../providers/ConsoleProvider";
@@ -7,6 +6,7 @@ import { WhatsAppProvider } from "../providers/WhatsAppProvider";
 
 export class NotificationDispatcher {
     private providers: Record<NotificationChannel, NotificationProvider>;
+    private supabase = createClient();
 
     constructor() {
         // Initialize providers
@@ -63,26 +63,31 @@ export class NotificationDispatcher {
             errorMsg = err.message || 'Unknown error';
         }
 
-        // 2. Log to Firestore
+        // 2. Log to Supabase
         let logId: string | undefined;
         try {
-            const docRef = await addDoc(collection(db, "notification_logs"), {
-                barberId,
-                customerId,
-                type,
-                channel,
-                sentAt: serverTimestamp(), // Uses server timestamp for consistency
-                status,
-                error: errorMsg || null,
-                // Metadata for easier debugging/tracking
-                recipient: to,
-                messageSnippet: message.slice(0, 50) + (message.length > 50 ? '...' : '')
-            });
-            logId = docRef.id;
+            const { data, error } = await this.supabase
+                .from("notification_logs")
+                .insert([{
+                    barber_id: barberId,
+                    customer_id: customerId,
+                    type,
+                    channel,
+                    sent_at: new Date().toISOString(),
+                    status,
+                    error: errorMsg || null,
+                    recipient: to,
+                    message_snippet: message.slice(0, 50) + (message.length > 50 ? '...' : '')
+                }])
+                .select()
+                .single();
+
+            if (data) logId = data.id;
+            if (error) throw error;
             console.log(`[NotificationDispatcher] Logged notification ${logId} with status ${status}`);
 
         } catch (logErr) {
-            console.error(`[NotificationDispatcher] CRITICAL: Failed to log notification to Firestore`, logErr);
+            console.error(`[NotificationDispatcher] CRITICAL: Failed to log notification to Supabase`, logErr);
             // We don't fail the whole operation just because logging failed, but this is critical for the requirement
         }
 

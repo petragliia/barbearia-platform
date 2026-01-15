@@ -16,6 +16,8 @@ export const PLAN_FEATURES = {
         customDomain: false,
         products: false,
         aiCopywriting: false,
+        marketing: false,
+        loyalty: false,
         maxServices: 3
     },
     STARTER: {
@@ -23,6 +25,8 @@ export const PLAN_FEATURES = {
         customDomain: false,
         products: false,
         aiCopywriting: false,
+        marketing: false,
+        loyalty: false,
         maxServices: 10
     },
     PRO: {
@@ -30,6 +34,8 @@ export const PLAN_FEATURES = {
         customDomain: true,
         products: false,
         aiCopywriting: false,
+        marketing: true,
+        loyalty: false,
         maxServices: 99
     },
     BUSINESS: {
@@ -37,6 +43,8 @@ export const PLAN_FEATURES = {
         customDomain: true,
         products: true,
         aiCopywriting: true,
+        marketing: true,
+        loyalty: true,
         maxServices: 99
     }
 } as const;

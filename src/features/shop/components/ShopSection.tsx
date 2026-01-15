@@ -50,6 +50,10 @@ export default function ShopSection({ barberId, theme = 'modern' }: ShopSectionP
         urban: {
             title: "font-black uppercase text-white",
             subtitle: "text-gray-400"
+        },
+        volt: {
+            title: "font-bold text-blue-500 uppercase tracking-widest",
+            subtitle: "text-blue-400/80"
         }
     };
 

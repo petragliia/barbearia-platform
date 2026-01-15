@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight, Menu, X, ArrowUpRight, Scissors } from 'lucide-react';
@@ -15,6 +17,7 @@ import BeforeAfterSlider from './BeforeAfterSlider';
 import Footer from '@/features/marketing/components/Footer';
 import FAQSection from '@/features/marketing/components/FAQSection';
 import ProductsSection from './ProductsSection';
+import GalleryGrid from './shared/GalleryGrid';
 
 interface TemplateProps {
     data: BarbershopData;
@@ -202,14 +205,22 @@ export default function TemplateModern({ data, isEditing = false, onUpdate }: Te
 
                                 {/* Right: Image (Full height on Desktop, Aspect ratio on mobile) */}
                                 <div className="w-full md:w-1/2 h-[50vh] md:h-screen relative bg-gray-100 overflow-hidden">
+                                    import Image from 'next/image';
+
+                                    // ... (Oops, I need to add import at top again separately or use multi-replace properly)
+                                    // I will just replace the image block first, then add import.
+
                                     <motion.div
                                         style={{ y: heroImageY }}
                                         className="absolute inset-0 w-full h-[120%]" // slightly larger for parallax
                                     >
-                                        <img
-                                            src={content.hero_image}
+                                        <Image
+                                            src={content.hero_image || '/placeholder-hero.jpg'}
                                             alt="Hero"
-                                            className="w-full h-full object-cover"
+                                            fill
+                                            sizes="(max-width: 768px) 100vw, 50vw"
+                                            className="object-cover"
+                                            priority
                                         />
                                         <div className="absolute inset-0 bg-black/5" />
                                     </motion.div>
@@ -325,26 +336,13 @@ export default function TemplateModern({ data, isEditing = false, onUpdate }: Te
                                     Editorial Visual
                                 </motion.h2>
 
-                                <div className="max-w-[1800px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                    {gallery.map((img, i) => (
-                                        <motion.div
-                                            key={i}
-                                            initial={{ opacity: 0, scale: 0.95 }}
-                                            whileInView={{ opacity: 1, scale: 1 }}
-                                            viewport={{ once: true }}
-                                            transition={{ delay: i * 0.1 }}
-                                            className={`relative group overflow-hidden bg-gray-100 aspect-[3/4] ${i === 0 ? 'md:col-span-2 md:row-span-2 aspect-[3/3.3]' : ''}`}
-                                        >
-                                            <img
-                                                src={img}
-                                                alt={`Gallery ${i}`}
-                                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                            />
-                                            {isEditing && (
-                                                <ImageUploader onUpload={(url) => updateGallery(i, url)} />
-                                            )}
-                                        </motion.div>
-                                    ))}
+                                <div className="max-w-[1800px] mx-auto">
+                                    <GalleryGrid
+                                        images={gallery}
+                                        isEditing={isEditing}
+                                        onUpdate={(newGallery) => onUpdate && onUpdate({ ...data, gallery: newGallery })}
+                                        variant="modern"
+                                    />
                                 </div>
                             </section>
                         );

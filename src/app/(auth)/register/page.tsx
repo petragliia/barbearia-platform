@@ -1,9 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { UserPlus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
@@ -16,29 +14,23 @@ export default function RegisterPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const router = useRouter();
+    const supabase = createClient();
 
     const handleGoogleRegister = async () => {
         setLoading(true);
         setError('');
         try {
-            const provider = new GoogleAuthProvider();
-            const result = await signInWithPopup(auth, provider);
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: `${window.location.origin}/api/auth/callback`
+                }
+            });
 
-            // Check if user already exists in database
-            const userDoc = await getDoc(doc(db, 'users', result.user.uid));
-
-            if (userDoc.exists()) {
-                // User already has a profile, redirect to dashboard
-                router.push('/dashboard');
-            } else {
-                // New user, redirect to Wizard
-                const searchParams = new URLSearchParams(window.location.search);
-                router.push(`/wizard?${searchParams.toString()}`);
-            }
+            if (error) throw error;
         } catch (err: any) {
             console.error(err);
             setError('Erro ao criar conta com Google. Tente novamente.');
-        } finally {
             setLoading(false);
         }
     };
@@ -61,17 +53,28 @@ export default function RegisterPage() {
         }
 
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            await updateProfile(userCredential.user, {
-                displayName: name
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        display_name: name, // Custom data in metadata
+                    }
+                }
             });
+
+            if (error) throw error;
+
+            // In Supabase, usually profiles are created via Triggers or manually.
+            // Our AuthContext handles profile creation on first load if it doesn't exist.
+            // So we can just redirect.
 
             // Redirect to Wizard to create the first barbershop
             const searchParams = new URLSearchParams(window.location.search);
             router.push(`/wizard?${searchParams.toString()}`);
         } catch (err: any) {
             console.error(err);
-            if (err.code === 'auth/email-already-in-use') {
+            if (err.message.includes('already registered')) {
                 setError('Este email já está em uso.');
             } else {
                 setError('Erro ao criar conta. Tente novamente.');

@@ -1,78 +1,133 @@
-import { db } from '@/lib/firebase';
-import { collection, doc, getDocs, query, setDoc, where, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { createClient } from '@/lib/supabase/client';
 import { BarbershopData } from '@/types/barbershop';
 
-export async function createBarbershop(data: BarbershopData, userId: string): Promise<string> {
-    const barbershopsRef = collection(db, 'barbershops');
+export type BarbershopInput = Pick<BarbershopData, 'name' | 'slug' | 'template_id'> & {
+    owner_id?: string;
+};
 
-    // 1. Verificação de Unicidade do Slug
-    const q = query(barbershopsRef, where('slug', '==', data.slug));
-    const querySnapshot = await getDocs(q);
+// Re-export specific interface if needed locally, or just use the imported one
+export type { BarbershopData };
 
-    if (!querySnapshot.empty) {
-        throw new Error('Esta URL já está em uso. Por favor, escolha outra.');
+// Helper para evitar travamentos eternos
+const timeout = (ms: number, message: string) =>
+    new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms));
+
+export async function checkSlugAvailability(slug: string): Promise<boolean> {
+    const supabase = createClient();
+
+    try {
+        // Competição: Quem chegar primeiro ganha (O banco ou o erro de 5s)
+        const result = await Promise.race([
+            supabase.from('barbershops').select('*', { count: 'exact', head: true }).eq('slug', slug),
+            timeout(8000, 'Tempo limite excedido ao verificar nome. Verifique sua conexão.')
+        ]) as { count: number | null; error: any };
+
+        if (result.error) throw result.error;
+
+        // Se count for 0, está livre.
+        return result.count === 0;
+    } catch (error) {
+        console.error('Erro no checkSlug:', error);
+        // Em caso de erro técnico, assumimos indisponível para segurança
+        throw new Error('Erro de conexão ao verificar nome.');
+    }
+}
+
+export async function createBarbershop(data: BarbershopInput, userId?: string): Promise<BarbershopData> {
+    const supabase = createClient();
+
+    // 1. Identificar Usuário (com timeout)
+    let ownerId = userId;
+    if (!ownerId) {
+        const { data: userData, error: authError } = await supabase.auth.getUser();
+        if (authError || !userData.user) throw new Error('Sessão expirada. Faça login novamente.');
+        ownerId = userData.user.id;
     }
 
-    // 2. Gravação
-    // Usando userId como ID do documento para facilitar (1 barbearia por usuário por enquanto)
-    // Ou podemos usar um ID gerado: const newDocRef = doc(barbershopsRef);
+    // 2. Verificar Slug
+    const isAvailable = await checkSlugAvailability(data.slug);
+    if (!isAvailable) {
+        throw new Error('Este link já está em uso.');
+    }
 
-    // Vamos usar um ID gerado automaticamente para permitir que um usuário tenha múltiplas barbearias no futuro,
-    // mas salvando o ownerId.
-    const newDocRef = doc(barbershopsRef);
+    // 3. Inserir Barbearia (com timeout)
+    const insertPromise = supabase
+        .from('barbershops')
+        .insert([
+            {
+                name: data.name,
+                slug: data.slug,
+                template_id: data.template_id,
+                owner_id: ownerId,
+                status: 'active',
+                plan_tier: 'free',
+                whatsapp_enabled: false
+            },
+        ])
+        .select()
+        .single();
 
-    const barbershopToSave = {
-        ...data,
-        id: newDocRef.id, // Sobrescreve o ID temporário
-        ownerId: userId,
-        createdAt: serverTimestamp(),
-        status: 'active', // Inicialmente active para testes
-        isPublished: false,
-        products: data.products || [],
-        contact: {
-            phone: data.contact?.phone || "",
-            whatsapp: data.contact?.whatsapp || "",
-            address: data.contact?.address || "Endereço não informado",
-            instagram: data.contact?.instagram || "",
-            email: data.contact?.email || ""
-        },
-        services: data.services || [],
-    };
+    const { data: newBarbershop, error: insertError } = await Promise.race([
+        insertPromise,
+        timeout(10000, 'O banco de dados demorou para responder ao criar a loja.')
+    ]) as { data: BarbershopData | null; error: any };
 
-    await setDoc(newDocRef, barbershopToSave);
+    if (insertError) {
+        console.error('Erro Insert:', insertError);
+        if (insertError.code === '23505') throw new Error('Nome já registrado.');
+        if (insertError.code === '42501') throw new Error('Erro de Permissão (RLS).');
+        throw new Error(`Erro ao salvar: ${insertError.message}`);
+    }
 
-    return data.slug;
+    return newBarbershop as BarbershopData;
 }
 
 export async function getBarbershop(userId: string): Promise<BarbershopData | null> {
-    const barbershopsRef = collection(db, 'barbershops');
-    const q = query(barbershopsRef, where('ownerId', '==', userId));
-    const querySnapshot = await getDocs(q);
+    const supabase = createClient();
+    const { data, error } = await supabase
+        .from('barbershops')
+        .select('*')
+        .eq('owner_id', userId)
+        .single();
 
-    if (querySnapshot.empty) {
-        return null;
-    }
-
-    // Return the first one found (assuming 1 shop per user for now)
-    const docData = querySnapshot.docs[0].data();
-    return docData as BarbershopData;
-}
-
-export async function updateBarbershop(barbershopId: string, data: Partial<BarbershopData>): Promise<void> {
-    const docRef = doc(db, 'barbershops', barbershopId);
-    // We need to import updateDoc
-    const { updateDoc } = await import('firebase/firestore');
-    await updateDoc(docRef, data);
+    if (error || !data) return null;
+    return data;
 }
 
 export async function getBarbershopById(barbershopId: string): Promise<BarbershopData | null> {
-    const { getDoc } = await import('firebase/firestore');
-    const docRef = doc(db, 'barbershops', barbershopId);
-    const docSnap = await getDoc(docRef);
+    const supabase = createClient();
+    const { data, error } = await supabase
+        .from('barbershops')
+        .select('*')
+        .eq('id', barbershopId)
+        .single();
 
-    if (docSnap.exists()) {
-        return docSnap.data() as BarbershopData;
-    } else {
-        return null;
-    }
+    if (error || !data) return null;
+    return data;
+}
+
+export async function updateBarbershop(barbershopId: string, updates: Partial<BarbershopData>): Promise<BarbershopData | null> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+        .from('barbershops')
+        .update(updates)
+        .eq('id', barbershopId)
+        .select()
+        .single();
+
+    if (error) throw new Error(error.message);
+    return data;
+}
+
+export async function updateBarbershopByOwner(ownerId: string, updates: Partial<BarbershopData>) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+        .from('barbershops')
+        .update(updates)
+        .eq('owner_id', ownerId)
+        .select()
+        .single();
+
+    if (error) throw new Error(error.message);
+    return data;
 }

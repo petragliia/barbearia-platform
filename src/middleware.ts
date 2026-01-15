@@ -43,14 +43,71 @@ export default async function middleware(req: NextRequest) {
         }
 
         // --- Existing Auth Protection Logic ---
-        const authToken = req.cookies.get('auth_token');
+        // --- Existing Auth Protection Logic ---
+        // const authToken = req.cookies.get('auth_token'); // OLD
+
+        // Supabase Auth Check
+        // We can't use createServerClient easily here without full setup, 
+        // but we can check for the presence of the access token cookie or use a simplified check
+        // Ideally we should use createServerClient from @supabase/ssr here to refresh session.
+        // For now, let's look for the supabase cookie prefix standard or just assume if we have cookies.
+        // But to be proper, let's replicate the server client creation for middleware pattern if possible,
+        // or just check if `sb-access-token` or similar exists if we want to be lightweight.
+
+        // However, standard Supabase Next.js middleware is recommended.
+        // Since I can't easily import the complex server client factory with cookies() (which isn't available in middleware same way),
+        // I will do a basic check for now or basic existence of supabase cookies.
+
+        // To properly implement Supabase middleware:
+        /*
+          import { createServerClient } from '@supabase/ssr'
+          ...
+          const supabase = createServerClient(..., { cookies: { ... } })
+          const { data: { user } } = await supabase.auth.getUser()
+        */
+
+        // Given constraints and imports, let's try to import the createClient from utils if adaptable, 
+        // but server.ts usage 'next/headers' cookies() which throws in middleware.
+
+        // FALLBACK: For this migration step, since I removed the manual cookie 'auth_token',
+        // I will check for the Supabase session cookie presence roughly.
+        // Actually, the most robust way without full refactor is to import standard response update.
+
+        // Let's implement the standard Supabase middleware logic inline.
+
+        const response = NextResponse.next({
+            request: {
+                headers: req.headers,
+            },
+        });
+
+        const supabase = await import('@supabase/ssr').then(mod => mod.createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll() {
+                        return req.cookies.getAll();
+                    },
+                    setAll(cookiesToSet) {
+                        cookiesToSet.forEach(({ name, value, options }) => req.cookies.set(name, value));
+                        cookiesToSet.forEach(({ name, value, options }) =>
+                            response.cookies.set(name, value, options)
+                        );
+                    },
+                },
+            }
+        ));
+
+        const { data: { user } } = await supabase.auth.getUser();
+
         const isDashboard = url.pathname.startsWith('/dashboard');
 
-        if (isDashboard && !authToken) {
-            // Redirect to login if trying to access dashboard without token
-            // Ensure we are redirecting to the login page on the app subdomain
+        if (isDashboard && !user) {
             return NextResponse.redirect(new URL('/login', req.url));
         }
+
+        return response;
         // --------------------------------------
 
         // Allow request to proceed normally for app subdomain

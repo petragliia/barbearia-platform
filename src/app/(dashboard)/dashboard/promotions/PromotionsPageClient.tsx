@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { usePermission } from '@/hooks/usePermission';
+import { usePermission } from '@/features/auth/hooks/usePermission';
 import { useEffect, useState } from 'react';
 import { getBarbershopByOwner } from '@/app/actions/barbershop';
 import { getPromotions } from '@/app/actions/promotions';
@@ -17,7 +17,7 @@ import Link from 'next/link';
 
 export default function PromotionsPageClient() {
     const { user, loading: authLoading } = useAuth();
-    const { can, loading: permLoading } = usePermission();
+    const { can, plan, loading: permLoading } = usePermission();
 
     // Feature Gating Checks
 
@@ -38,7 +38,7 @@ export default function PromotionsPageClient() {
 
         async function load() {
             try {
-                const shop = await getBarbershopByOwner(user!.uid);
+                const shop = await getBarbershopByOwner(user!.id);
                 if (shop) {
                     setBarbershop(shop);
 
@@ -49,8 +49,8 @@ export default function PromotionsPageClient() {
                     }
 
                     // Fetch Products
-                    const prods = await productService.getProductsByBarberId(shop.id);
-                    setProducts(prods);
+                    const { data: prods } = await productService.getProductsByBarberId(shop.id, plan);
+                    setProducts(prods || []);
                 }
             } catch (e) {
                 console.error(e);
@@ -63,7 +63,7 @@ export default function PromotionsPageClient() {
     }, [user]);
 
     // Derived permission state
-    const { plan } = usePermission();
+    // const { plan } = usePermission(); // Already destructured above
     // Assuming PRO+ access.
     const hasAccess = plan === 'PRO' || plan === 'BUSINESS';
 

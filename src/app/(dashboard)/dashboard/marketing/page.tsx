@@ -10,9 +10,8 @@ import LoyaltyDashboardConfig from '@/features/loyalty/components/LoyaltyDashboa
 import { useFeatureAccess } from '@/features/marketing/hooks/useFeatureAccess';
 import FeatureLocked from '@/features/dashboard/components/FeatureLocked';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { LoyaltyConfig } from '@/features/loyalty/types';
+import { getBarbershop } from '@/lib/services/barbershopService';
 
 export default function MarketingPage() {
     const hasAccess = useFeatureAccess('marketing');
@@ -23,10 +22,9 @@ export default function MarketingPage() {
         if (!user) return;
         const fetchConfig = async () => {
             try {
-                const docRef = doc(db, 'barbershops', user.uid);
-                const snap = await getDoc(docRef);
-                if (snap.exists()) {
-                    setLoyaltyConfig(snap.data().loyalty);
+                const data = await getBarbershop(user.id);
+                if (data && data.loyalty) {
+                    setLoyaltyConfig(data.loyalty);
                 }
             } catch (error) {
                 console.error("Error fetching loyalty config:", error);
@@ -86,7 +84,7 @@ export default function MarketingPage() {
 
                 <TabsContent value="loyalty" className="mt-6">
                     <LoyaltyDashboardConfig
-                        barbershopId={user?.uid || ''}
+                        barbershopId={user?.id || ''}
                         initialConfig={loyaltyConfig}
                     />
                 </TabsContent>

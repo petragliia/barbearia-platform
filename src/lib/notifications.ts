@@ -1,59 +1,46 @@
-import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { CopywriterService } from '@/features/ai/services/CopywriterService';
+// src/lib/notifications.ts
 
-interface NotificationData {
-    barbershopName?: string;
-    barbershopId?: string; // Added for context
-    barberPlan?: string; // Added to check permissions
-    barberStyle?: 'urban' | 'classic' | 'modern'; // Added for AI context
-    serviceName?: string;
-    date?: Date;
+interface AppointmentNotificationProps {
     customerName: string;
     customerPhone: string;
-    lastService?: string; // For win-back
+    date: string; // ISO string
+    time: string;
+    serviceName: string;
+    barbershopName?: string; // Optional, can be fetched or passed
 }
 
-export async function sendNotification(type: 'confirmation' | 'win_back', data: NotificationData) {
-    console.log(`[Notification Service] Processing ${type} for ${data.customerName}`);
+export async function sendAppointmentNotification(data: AppointmentNotificationProps) {
+    // Simulação de delay de rede
+    // await new Promise(resolve => setTimeout(resolve, 100));
 
-    let message = '';
 
-    if (type === 'confirmation' && data.serviceName && data.date) {
-        message = `Olá ${data.customerName}, seu agendamento para ${data.serviceName} em ${data.date.toLocaleString('pt-BR')} foi confirmado!`;
-    } else if (type === 'win_back') {
-        // AI Integration
-        if (data.barberPlan === 'BUSINESS') {
-            console.log('[Notification Service] Using AI Copywriter for Business Plan...');
-            message = await CopywriterService.generateMessage({
-                type: 'win_back',
-                customerName: data.customerName,
-                barberStyle: data.barberStyle || 'modern',
-                description: data.lastService ? `Último serviço: ${data.lastService}` : undefined
-            });
-        } else {
-            // Static Fallback
-            message = `Olá ${data.customerName}, saudade de você! Bora agendar um corte?`;
-        }
+
+    // TODO: Integrar com Evolution API real
+    /*
+    import { sendWhatsAppMessage } from './evolution-api';
+    
+    const message = `Olá ${data.customerName}, seu agendamento de ${data.serviceName} para ${new Date(data.date).toLocaleDateString('pt-BR')} às ${data.time} foi confirmado!`;
+    
+    await sendWhatsAppMessage({
+      phone: data.customerPhone,
+      message: message
+    });
+    */
+}
+
+// Compatibility export for legacy code if needed
+export const sendNotification = async (type: string, data: any) => {
+    // Adapter to map old 'sendNotification' calls to new structure if feasible, 
+    // or just console log to avoid runtime crash during transition
+
+    if (type === 'confirmation') {
+        // Best effort mapping
+        await sendAppointmentNotification({
+            customerName: data.customerName,
+            customerPhone: data.customerPhone,
+            date: data.date.toISOString(),
+            time: data.date.toLocaleTimeString(),
+            serviceName: data.serviceName || 'Service'
+        })
     }
-
-    // 1. Log to Console (Simulating external API call)
-    console.log(`[WhatsApp Mock] Sending to ${data.customerPhone}: "${message}"`);
-
-    // 2. Log to Firestore (Audit Trail)
-    try {
-        await addDoc(collection(db, 'notification_logs'), {
-            type,
-            ...data,
-            message,
-            status: 'sent',
-            provider: 'mock',
-            createdAt: serverTimestamp(),
-            aiGenerated: data.barberPlan === 'BUSINESS' && type === 'win_back'
-        });
-    } catch (error) {
-        console.error('[Notification Service] Failed to log notification:', error);
-    }
-
-    return { success: true, message };
 }

@@ -1,5 +1,3 @@
-'use client';
-
 import { useState } from 'react';
 import { LoyaltyConfig } from '../types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,8 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Gift, Save, Award } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { updateBarbershop } from '@/lib/services/barbershopService';
 import { n8nService } from '@/services/n8nService';
 
 interface LoyaltyDashboardConfigProps {
@@ -38,9 +35,8 @@ export default function LoyaltyDashboardConfig({ barbershopId, initialConfig }: 
         });
 
         try {
-            const shopRef = doc(db, 'barbershops', barbershopId);
             // Updating the loyalty field inside the barbershop document
-            await updateDoc(shopRef, {
+            await updateBarbershop(barbershopId, {
                 loyalty: config
             });
 

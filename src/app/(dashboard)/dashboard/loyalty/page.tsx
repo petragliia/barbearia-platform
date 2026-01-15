@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { getBarbershop } from '@/lib/services/barbershopService';
 import LoyaltyDashboardConfig from '@/features/loyalty/components/LoyaltyDashboardConfig';
 import { LoyaltyConfig } from '@/features/loyalty/types';
 import { Loader2 } from 'lucide-react';
@@ -17,10 +16,9 @@ export default function LoyaltyPage() {
         const fetchConfig = async () => {
             if (!user) return;
             try {
-                const docRef = doc(db, 'barbershops', user.uid);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
+                const userId = (user as any).uid || user.id;
+                const data = await getBarbershop(userId);
+                if (data) {
                     setConfig(data.loyalty);
                 }
             } catch (error) {
@@ -50,7 +48,7 @@ export default function LoyaltyPage() {
                 <p className="text-slate-400">Configure as regras e recompensas para seus clientes mais fiéis.</p>
             </div>
 
-            <LoyaltyDashboardConfig barbershopId={user.uid} initialConfig={config} />
+            <LoyaltyDashboardConfig barbershopId={(user as any).uid || user.id} initialConfig={config} />
         </div>
     );
 }

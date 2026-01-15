@@ -1,5 +1,4 @@
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { createClient } from "@/lib/supabase/client";
 import { NotificationTemplate, NotificationTemplateSchema } from "../types";
 
 export class TemplateService {
@@ -7,39 +6,46 @@ export class TemplateService {
      * Fetches a template by type. Prioritizes barber-specific templates, falls back to global (null barberId).
      */
     static async getTemplate(type: string, barberId?: string): Promise<NotificationTemplate | null> {
+        const supabase = createClient();
         try {
-            const templatesRef = collection(db, "notification_templates");
-
             // 1. Try to find a specific template for this barber
             if (barberId) {
-                const q = query(
-                    templatesRef,
-                    where("type", "==", type),
-                    where("barberId", "==", barberId),
-                    where("isActive", "==", true)
-                );
-                const snapshot = await getDocs(q);
-                if (!snapshot.empty) {
-                    const data = snapshot.docs[0].data();
-                    return NotificationTemplateSchema.parse({ id: snapshot.docs[0].id, ...data });
+                const { data, error } = await supabase
+                    .from("notification_templates")
+                    .select("*")
+                    .eq("type", type)
+                    .eq("barber_id", barberId)
+                    .eq("is_active", true)
+                    .single(); // Assuming only one active template per type per barber
+
+                if (data) {
+                    return NotificationTemplateSchema.parse({
+                        id: data.id,
+                        type: data.type,
+                        content: data.content,
+                        barberId: data.barber_id,
+                        isActive: data.is_active
+                    });
                 }
             }
 
             // 2. Fallback to global template
-            const qGlobal = query(
-                templatesRef,
-                where("type", "==", type),
-                where("barberId", "==", null), // or check for missing field if relying on that
-                where("isActive", "==", true)
-            );
-            // Note: Firestore 'where field == null' works. 
-            // Sometimes global templates might just omit the field. Let's assume explicit null or handled by omitted check logic if needed.
-            // For now, explicit null check.
+            const { data: globalData } = await supabase
+                .from("notification_templates")
+                .select("*")
+                .eq("type", type)
+                .is("barber_id", null)
+                .eq("is_active", true)
+                .single();
 
-            const snapshotGlobal = await getDocs(qGlobal);
-            if (!snapshotGlobal.empty) {
-                const data = snapshotGlobal.docs[0].data();
-                return NotificationTemplateSchema.parse({ id: snapshotGlobal.docs[0].id, ...data });
+            if (globalData) {
+                return NotificationTemplateSchema.parse({
+                    id: globalData.id,
+                    type: globalData.type,
+                    content: globalData.content,
+                    barberId: null, // explicit null
+                    isActive: globalData.is_active
+                });
             }
 
             return null;

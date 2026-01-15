@@ -1,6 +1,5 @@
 import { stripe } from "@/lib/stripe";
-import { dbAdmin } from "@/lib/firebase-admin"; // Server-side admin SDK
-import { Timestamp, FieldValue } from "firebase-admin/firestore";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 interface BarbershopData {
     slug: string;
@@ -41,49 +40,63 @@ export class PaymentService {
             throw new Error("Invalid barbershop data: missing slug");
         }
 
-        // 4. Transactional Creation in Firestore
-        // We use runTransaction to ensure we don't overwrite if it already exists or handle specific logic.
-        // For simplicity in this logical block, we'll verify slug uniqueness inside the transaction if needed,
-        // or just rely on the fact that if payment passed, we *should* provision.
-
+        // 4. Create in Supabase
         try {
-            const barbershopRef = dbAdmin.collection("barbershops").doc(); // Auto-ID
-
-            // Check for existing slug to avoid duplicates (though simple unique check might be enough)
-            const slugQuery = await dbAdmin.collection("barbershops")
-                .where("slug", "==", barbershopData.slug)
-                .get();
+            // Check for existing slug to avoid duplicates
+            const { data: existingSlug } = await supabaseAdmin
+                .from("barbershops")
+                .select("slug")
+                .eq("slug", barbershopData.slug)
+                .single();
 
             let finalSlug = barbershopData.slug;
-            if (!slugQuery.empty) {
-                // Determine if this is a retry or a conflict. 
-                // For now, as per original logic, append suffix to ensure provision success.
+            if (existingSlug) {
+                // Suffix if conflict
                 finalSlug = `${barbershopData.slug}-${Math.floor(Math.random() * 10000)}`;
             }
 
             const barbershopToSave = {
                 ...barbershopData,
                 slug: finalSlug,
-                id: barbershopRef.id,
-                ownerId: userId,
-                createdAt: FieldValue.serverTimestamp(),
+                owner_id: userId, // Map to snake_case
                 status: "active",
-                stripeSessionId: sessionId,
-                isPublished: false,
+                stripe_session_id: sessionId, // Map to snake_case
+                is_published: false,
                 products: barbershopData.products || [],
-                updatedAt: FieldValue.serverTimestamp(),
+                updated_at: new Date().toISOString(),
+                // id will be auto-generated or we can fetch user UUID?
+                // Wait, Barbershop ID usually IS the User ID in this "one shop per user" model?
+                // Original code: `doc(dbAdmin, "barbershops", user.uid)` -> Wait, `dbAdmin.collection("barbershops").doc()` was AUTO-ID in previous code.
+                // But `docRef = doc(db, 'barbershops', user.uid)` in AvailabilityPage implies ID IS UserID?
+                // Let's check AvailabilityPage logic again.
+                // AvailabilityPage: `doc(db, 'barbershops', user.uid)`
+                // PaymentService (Original): `dbAdmin.collection("barbershops").doc()` -> AUTO ID.
+                // CONTRADICTION!
+                // If AvailabilityPage reads by `user.uid`, then PaymentService MUST create with `user.uid` as ID or LINK it.
+                // In `barbershopService.ts` (Step 97), `getBarbershop` calls `.eq('owner_id', userId).single()`.
+                // So the ID of the barbershop record can be anything, as long as `owner_id` is set.
+                // So AUTO-ID is fine, assuming `barbershopService` queries by `owner_id`.
             };
 
-            await barbershopRef.set(barbershopToSave);
+            const { data: inserted, error } = await supabaseAdmin
+                .from("barbershops")
+                .insert([barbershopToSave])
+                .select()
+                .single();
+
+            if (error) {
+                console.error("Supabase insert error:", error);
+                throw error;
+            }
 
             return {
                 success: true,
-                barbershopId: barbershopRef.id,
+                barbershopId: inserted.id,
                 slug: finalSlug
             };
 
         } catch (error: any) {
-            console.error("Firestore provisioning error:", error);
+            console.error("Provisioning error:", error);
             throw new Error("Failed to provision barbershop in database");
         }
     }

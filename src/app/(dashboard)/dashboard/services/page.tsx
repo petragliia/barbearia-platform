@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getBarbershop, updateBarbershopByOwner } from '@/lib/services/barbershopService';
 import { Button } from '@/components/ui/button';
 import { Plus, Pencil, Trash2, X, Save, Clock, DollarSign } from 'lucide-react';
-import { BarbershopData, Service } from '@/types/barbershop';
+import { Service } from '@/types/barbershop';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ServicesPage() {
@@ -25,11 +24,11 @@ export default function ServicesPage() {
         const fetchServices = async () => {
             if (!user) return;
             try {
-                const docRef = doc(db, 'barbershops', user.uid);
-                const docSnap = await getDoc(docRef);
+                // Determine user ID property based on auth provider (Supabase uses 'id')
+                const userId = (user as any).uid || user.id;
+                const data = await getBarbershop(userId);
 
-                if (docSnap.exists()) {
-                    const data = docSnap.data() as BarbershopData;
+                if (data) {
                     setServices(data.services || []);
                 }
             } catch (error) {
@@ -75,8 +74,8 @@ export default function ServicesPage() {
                 newServices.push(serviceToSave);
             }
 
-            const docRef = doc(db, 'barbershops', user.uid);
-            await updateDoc(docRef, { services: newServices });
+            const userId = (user as any).uid || user.id;
+            await updateBarbershopByOwner(userId, { services: newServices });
 
             setServices(newServices);
             setIsModalOpen(false);
@@ -93,8 +92,8 @@ export default function ServicesPage() {
 
         try {
             const newServices = services.filter((_, i) => i !== index);
-            const docRef = doc(db, 'barbershops', user.uid);
-            await updateDoc(docRef, { services: newServices });
+            const userId = (user as any).uid || user.id;
+            await updateBarbershopByOwner(userId, { services: newServices });
             setServices(newServices);
         } catch (error) {
             console.error("Error deleting service:", error);
@@ -212,3 +211,4 @@ export default function ServicesPage() {
         </div>
     );
 }
+

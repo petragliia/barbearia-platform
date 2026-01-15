@@ -5,26 +5,32 @@ import { ProductManager } from "@/features/products/components/Admin/ProductMana
 import { productService } from "@/features/products/services/productService";
 import { Product } from "@/features/products/types";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import { usePermission } from "@/features/auth/hooks/usePermission";
 
 export default function ProductsPage() {
+    const { user } = useAuth();
+    const { plan } = usePermission();
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
-    // In a real app with auth, we would get the barberId from the session/context
-    const barberId = "default";
+
+    const barberId = user?.id || '';
 
     useEffect(() => {
+        if (!barberId) return;
         let mounted = true;
 
         const loadProducts = async () => {
             try {
-                let fetchedProducts = await productService.getProductsByBarberId(barberId);
+                // Pass plan to service
+                let { data: fetchedProducts } = await productService.getProductsByBarberId(barberId, plan);
 
-                // Auto-Initialize if empty
-                if (fetchedProducts.length === 0) {
-                    console.log("No products found. Auto-seeding defaults (client)...");
-                    await productService.seedProducts(barberId);
-                    fetchedProducts = await productService.getProductsByBarberId(barberId);
-                }
+                // Auto-Initialize if empty (legacy logic kept, but maybe check permission?)
+                // If hasPermission is false, fetchedProducts is empty.
+                // We should probably NOT seed if permission is denied.
+
+                // For now, simple fix for type compatibility:
+                fetchedProducts = fetchedProducts || [];
 
                 if (mounted) {
                     setProducts(fetchedProducts);
@@ -43,7 +49,7 @@ export default function ProductsPage() {
         return () => {
             mounted = false;
         };
-    }, []);
+    }, [barberId, plan]);
 
     if (loading) {
         return (

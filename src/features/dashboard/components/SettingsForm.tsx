@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getBarbershop, updateBarbershopByOwner } from '@/lib/services/barbershopService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,16 +10,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Save, Loader2, CheckCircle2, User, Image as ImageIcon, Phone, Instagram, MapPin } from 'lucide-react';
 import { BarbershopData } from '@/types/barbershop';
 import ImageUploader from '@/components/ui/ImageUploader';
-import { User as AuthUser } from 'firebase/auth';
+// import { User as AuthUser } from 'firebase/auth'; // Removing Firebase Auth type
 
 interface SettingsFormProps {
-    user: AuthUser;
+    user: { id?: string; uid?: string }; // Support both for now to be safe
 }
 
 export default function SettingsForm({ user }: SettingsFormProps) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [originalData, setOriginalData] = useState<BarbershopData | null>(null);
 
     // Default to 'general' tab
     const [_activeTab, setActiveTab] = useState("general");
@@ -38,11 +38,13 @@ export default function SettingsForm({ user }: SettingsFormProps) {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const docRef = doc(db, 'barbershops', user.uid);
-                const docSnap = await getDoc(docRef);
+                const userId = user.id || user.uid;
+                if (!userId) return;
 
-                if (docSnap.exists()) {
-                    const data = docSnap.data() as BarbershopData;
+                const data = await getBarbershop(userId);
+
+                if (data) {
+                    setOriginalData(data);
                     setFormData({
                         name: data.name,
                         description: data.content?.description || '',
@@ -68,17 +70,27 @@ export default function SettingsForm({ user }: SettingsFormProps) {
         setSuccess(false);
 
         try {
-            const docRef = doc(db, 'barbershops', user.uid);
+            const userId = user.id || user.uid;
+            if (!userId) throw new Error("User ID not found");
 
-            await updateDoc(docRef, {
-                'name': formData.name,
-                'content.description': formData.description,
-                'contact.phone': formData.phone,
-                'contact.whatsapp': formData.whatsapp,
-                'contact.address': formData.address,
-                'contact.instagram': formData.instagram,
-                'content.hero_image': formData.hero_image
-            });
+            // Construct payload merging with original data to preserve hidden fields in JSON columns
+            const payload: Partial<BarbershopData> = {
+                name: formData.name,
+                content: {
+                    ...(originalData?.content || {}),
+                    description: formData.description,
+                    hero_image: formData.hero_image,
+                } as any,
+                contact: {
+                    ...(originalData?.contact || {}),
+                    phone: formData.phone,
+                    whatsapp: formData.whatsapp,
+                    address: formData.address,
+                    instagram: formData.instagram,
+                } as any
+            };
+
+            await updateBarbershopByOwner(userId, payload);
 
             setSuccess(true);
             setTimeout(() => setSuccess(false), 3000);

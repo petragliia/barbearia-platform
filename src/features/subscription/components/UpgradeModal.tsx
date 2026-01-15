@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useSubscriptionContext } from '../context/SubscriptionContext';
 import { X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { usePermission } from '@/hooks/usePermission';
+import { usePermission } from '@/features/auth/hooks/usePermission';
 import { VISIBLE_PLANS, PlanTier } from '@/config/plans';
 import { cn } from '@/lib/utils';
 

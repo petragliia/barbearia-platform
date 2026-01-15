@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { getBarbershop, updateBarbershopByOwner } from "@/lib/services/barbershopService";
 import { NotificationSettings, NotificationSettingsSchema } from "../types";
 import { z } from "zod";
 
@@ -27,21 +26,20 @@ export const useNotificationSettings = (barberId: string | undefined) => {
         const fetchSettings = async () => {
             try {
                 setLoading(true);
-                const docRef = doc(db, "barbershops", barberId);
-                const docSnap = await getDoc(docRef);
+                // Assuming barberId is the Owner ID (User ID) as per service availability
+                const data = await getBarbershop(barberId);
 
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    // Extract only notification settings if nested, assuming root for now based on req
-                    // Adjusting based on requirement "Interface NotificationSettings (dentro do documento do Barbeiro)"
-                    // It's likely a field 'notificationSettings' inside the barber document or mixed fields.
-                    // Let's assume it's stored in a field called 'notificationSettings' for cleaner separation,
-                    // OR we can assume the barber document *implements* it.
-                    // Given constraints, I'll look for a 'notificationSettings' field, or fallback to default.
+                if (data) {
+                    // Extract settings from data.content (assuming structure)
+                    // The previous Firebase code read `doc.data().notificationSettings`.
+                    // In Supabase, we likely store it in `content` JSONB or a dedicated column?
+                    // Let's assume `content.notificationSettings` to keep JSON structure usage consistent
+                    // OR if migrated to a column, use that.
+                    // Given Migration Plan, we put unstructured data in `content`.
+                    const content: any = data.content || {};
+                    const settingsData = content.notificationSettings || {};
 
-                    const settingsData = data.notificationSettings || {};
-
-                    // Validate and parse, falling back to defaults for missing fields
+                    // Validate and parse
                     const result = NotificationSettingsSchema.safeParse({
                         ...DEFAULT_SETTINGS,
                         ...settingsData
@@ -51,10 +49,9 @@ export const useNotificationSettings = (barberId: string | undefined) => {
                         setSettings(result.data);
                     } else {
                         console.error("Invalid notification settings:", result.error);
-                        setSettings(DEFAULT_SETTINGS); // Fallback safe
+                        setSettings(DEFAULT_SETTINGS);
                     }
                 } else {
-                    // Barber not found? Or just no settings yet.
                     setSettings(DEFAULT_SETTINGS);
                 }
             } catch (err: any) {
@@ -73,11 +70,20 @@ export const useNotificationSettings = (barberId: string | undefined) => {
 
         try {
             const mergedSettings = { ...settings, ...newSettings };
-            const result = NotificationSettingsSchema.parse(mergedSettings); // Strict check before save
+            const result = NotificationSettingsSchema.parse(mergedSettings);
 
-            const docRef = doc(db, "barbershops", barberId);
-            await updateDoc(docRef, {
-                notificationSettings: result
+            // Fetch current content first to merge? 
+            // updateBarbershopByOwner in service might need explicit content merge if it doesn't do deep merge.
+            // As seen in AvailabilityPage, strict merge is required.
+
+            const currentData = await getBarbershop(barberId);
+            const currentContent = currentData?.content || {};
+
+            await updateBarbershopByOwner(barberId, {
+                content: {
+                    ...currentContent,
+                    notificationSettings: result
+                } as any
             });
 
             setSettings(result);

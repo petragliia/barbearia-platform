@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Check, Scissors, Star, Zap, Store, Crown, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import GreetingFeature from '@/components/features/GreetingFeature';
+import GreetingFeature from '@/features/onboarding/components/GreetingFeature';
 import Header from '@/features/marketing/components/Header';
 import HeroSection from '@/features/marketing/components/HeroSection';
 import TemplatesSection from '@/features/marketing/components/TemplatesSection';

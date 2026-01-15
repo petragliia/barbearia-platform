@@ -1,6 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { getNotificationSettingsRef } from "@/lib/firebase/collections";
+import { createClient } from '@/lib/supabase/client';
 import { NotificationSettings, NotificationSettingsSchema } from "../types";
 
 export const DEFAULT_SETTINGS: NotificationSettings = {
@@ -25,23 +23,24 @@ export class SettingsService {
      */
     static async getSettings(barberId: string): Promise<NotificationSettings> {
         try {
-            const docRef = doc(getNotificationSettingsRef(), barberId);
-            const docSnap = await getDoc(docRef);
+            const supabase = createClient();
+            // Assuming we have a 'notification_settings' table or stored in 'barbershops' JSONB.
+            // Let's assume a dedicated table linked by 'barbershop_id' because settings can grow.
+            const { data, error } = await supabase
+                .from('notification_settings')
+                .select('*')
+                .eq('barbershop_id', barberId)
+                .single();
 
-            if (docSnap.exists()) {
-                // Parse and validate with Zod to ensure type safety
-                const data = docSnap.data();
-                const result = NotificationSettingsSchema.safeParse(data);
-
-                if (result.success) {
-                    return result.data;
-                } else {
-                    console.warn(`[SettingsService] Invalid settings schema for ${barberId}, returning default.`, result.error);
-                    return DEFAULT_SETTINGS;
+            if (data) {
+                // If stored as JSONB 'settings' column:
+                if (data.settings) {
+                    const result = NotificationSettingsSchema.safeParse(data.settings);
+                    if (result.success) return result.data;
                 }
-            } else {
-                return DEFAULT_SETTINGS;
             }
+
+            return DEFAULT_SETTINGS;
         } catch (error) {
             console.error(`[SettingsService] Error fetching settings for ${barberId}:`, error);
             // Fail safe
@@ -55,20 +54,21 @@ export class SettingsService {
      */
     static async updateSettings(barberId: string, settings: Partial<NotificationSettings>): Promise<void> {
         try {
-            // Validate the partial structure if possible, but Zod parse handles full objects well.
-            // For partial updates, we might need a partial schema or just trust the merge.
-            // A better approach for "update" is often to get current, merge, validate, then save.
+            const supabase = createClient();
 
-            // However, Firestore setDoc with merge: true handles deep merges.
-            // Let's validate the specific fields being sent if they are complete sub-objects, 
-            // but for partial deep updates it's tricky. 
-            // Simpler approach: We assume 'settings' passed here matches the Partial<NotificationSettings>
-            // and we rely on the implementation to be correct.
+            // Simpler: Fetch, Merge, Save.
 
-            // To ensure we don't save garbage, let's try to validate loosely or just save.
+            const current = await this.getSettings(barberId);
+            const merged = { ...current, ...settings };
+            const { error } = await supabase
+                .from('notification_settings')
+                .upsert({
+                    barbershop_id: barberId,
+                    settings: merged,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'barbershop_id' }); // Assuming unique constraint on barbershop_id
 
-            const docRef = doc(getNotificationSettingsRef(), barberId);
-            await setDoc(docRef, settings, { merge: true });
+            if (error) throw error;
 
         } catch (error) {
             console.error(`[SettingsService] Error updating settings for ${barberId}:`, error);

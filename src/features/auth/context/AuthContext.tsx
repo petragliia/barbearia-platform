@@ -1,9 +1,8 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, signInAnonymously, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { User } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/client';
 import { PlanTier } from '@/config/plans';
 
 export type UserLevel = 'beginner' | 'pro';
@@ -32,54 +31,91 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
+    const supabase = createClient();
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-            setUser(firebaseUser);
+        const fetchProfile = async (userId: string, email?: string) => {
+            try {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
 
-            if (firebaseUser) {
-                // Set a simple cookie for middleware to detect session
-                document.cookie = "auth_token=true; path=/; max-age=2592000; SameSite=Strict"; // 30 days
+                if (profile) {
+                    // Map snake_case from DB to camelCase for the app
+                    const mappedProfile: UserProfile = {
+                        uid: profile.id,
+                        level: profile.level,
+                        plan: profile.plan,
+                        subscriptionStatus: profile.subscription_status,
+                        email: profile.email,
+                        addons: profile.addons || [],
+                        createdAt: profile.created_at
+                    };
+                    setUserProfile(mappedProfile);
+                } else if (!error && !profile) {
+                    // Create new profile if it doesn't exist
+                    const newProfile: UserProfile = {
+                        uid: userId,
+                        level: 'beginner',
+                        plan: 'FREE',
+                        subscriptionStatus: 'ACTIVE',
+                        email: email,
+                        addons: [],
+                        createdAt: new Date().toISOString()
+                    };
 
-                // Fetch or create user profile
-                try {
-                    const userDocRef = doc(db, 'users', firebaseUser.uid);
-                    const userDoc = await getDoc(userDocRef);
-
-                    if (userDoc.exists()) {
-                        setUserProfile(userDoc.data() as UserProfile);
-                    } else {
-                        // Create new profile for new user
-                        const newProfile: UserProfile = {
-                            uid: firebaseUser.uid,
+                    // Supabase 'profiles' table usually uses 'id' as PK which references auth.users
+                    const { error: insertError } = await supabase
+                        .from('profiles')
+                        .insert([{
+                            id: userId,
                             level: 'beginner',
-                            plan: 'FREE', // Default plan
-                            subscriptionStatus: 'ACTIVE',
-                            email: firebaseUser.email,
+                            plan: 'FREE',
+                            subscription_status: 'ACTIVE', // DB likely snake_case
+                            email: email,
                             addons: [],
-                            createdAt: new Date().toISOString()
-                        };
-                        await setDoc(userDocRef, newProfile);
+                            created_at: new Date().toISOString()
+                        }]);
+
+                    if (!insertError) {
                         setUserProfile(newProfile);
+                    } else {
+                        console.error("Error creating user profile:", insertError);
                     }
-                } catch (error) {
-                    console.error("Error fetching user profile:", error);
                 }
+            } catch (error) {
+                console.error("Error fetching user profile:", error);
+            }
+        };
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (session?.user) {
+                setUser(session.user);
+                // Cookie setting works differently with Supabase Auth helpers (SSR), 
+                // usually handled by middleware + server client, but we can set a flag if needed.
+                // Ideally depend on Supabase's automatic cookie handling.
+
+                await fetchProfile(session.user.id, session.user.email);
             } else {
-                // Remove cookie
-                document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                setUser(null);
                 setUserProfile(null);
             }
             setLoading(false);
         });
 
-        return () => unsubscribe();
-    }, []);
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, [supabase]);
 
     const signInAnonymous = async () => {
         try {
-            const result = await signInAnonymously(auth);
-            return result.user;
+            // Supabase anonymous sign-in requires specific configuration
+            const { data, error } = await supabase.auth.signInAnonymously();
+            if (error) throw error;
+            return data.user;
         } catch (error) {
             console.error('Error signing in anonymously:', error);
             return null;
@@ -88,8 +124,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const logout = async () => {
         try {
-            await signOut(auth);
+            await supabase.auth.signOut();
             setUserProfile(null);
+            setUser(null);
         } catch (error) {
             console.error('Error signing out:', error);
         }

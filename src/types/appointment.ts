@@ -10,4 +10,5 @@ export interface Appointment {
     createdAt: any;
     barberId: string;
     barberName: string;
+    time: string;
 }

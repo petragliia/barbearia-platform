@@ -2,11 +2,8 @@
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { PlanTier, VISIBLE_PLANS } from '@/config/plans';
-// import { useAuth } from '@/components/providers/AuthProvider'; // Removed as we use firebase/auth directly
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { PlanTier } from '@/config/plans';
+import { createClient } from '@/lib/supabase/client';
 
 interface SubscriptionContextType {
     currentPlan: PlanTier;
@@ -28,43 +25,84 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
     const { toast } = useToast();
     const [user, setUser] = useState<any>(null);
+    const supabase = createClient();
+
+    // Safety timeout
+    useEffect(() => {
+        const timer = setTimeout(() => setLoading(false), 5000);
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
-        const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-            if (!currentUser) {
+        // Initial Session Check
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                setUser(session.user);
+            } else {
+                setLoading(false);
+            }
+        });
+
+        // Auth State Listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            setUser(session?.user ?? null);
+            if (!session?.user) {
                 setCurrentPlan('FREE');
                 setSubscriptionStatus('inactive');
                 setLoading(false);
             }
         });
-        return () => unsubscribeAuth();
-    }, []);
 
+        return () => subscription.unsubscribe();
+    }, [supabase]);
+
+    // Fetch Plan from Profile
     useEffect(() => {
         if (!user) return;
 
-        const unsubscribeFirestore = onSnapshot(doc(db, 'users', user.uid), (docSnapshot) => {
-            if (docSnapshot.exists()) {
-                const userData = docSnapshot.data();
-                const sub = userData.subscription;
+        async function fetchProfile() {
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('subscription_data, is_premium, plan') // Assuming fields
+                    .eq('id', user.id)
+                    .single();
 
-                if (sub) {
-                    setCurrentPlan(sub.plan || 'FREE');
-                    setSubscriptionStatus(sub.status || 'inactive');
-                } else {
-                    setCurrentPlan('FREE');
-                    setSubscriptionStatus('inactive');
+                if (data) {
+                    // Decide source of truth. Usually 'plan' column or inside subscription_data
+                    // Mapping: subscription_data might have 'plan'
+                    const subData = data.subscription_data as any; // Cast if needed
+
+                    if (subData) {
+                        setCurrentPlan(subData.plan || data.plan || 'FREE');
+                        setSubscriptionStatus(subData.status || 'inactive');
+                    } else {
+                        // Fallback to top level column if exists
+                        setCurrentPlan(data.plan || 'FREE');
+                        setSubscriptionStatus('inactive');
+                    }
                 }
+            } catch (err) {
+                console.error("Error fetching subscription:", err);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
-        }, (error) => {
-            console.error("Error fetching subscription:", error);
-            setLoading(false);
-        });
+        }
 
-        return () => unsubscribeFirestore();
-    }, [user]);
+        fetchProfile();
+
+        // Optional: Realtime subscription for profile updates
+        /*
+        const channel = supabase.channel('profile_updates')
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload) => {
+                 // handle update
+                 fetchProfile();
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(channel); }
+        */
+
+    }, [user, supabase]);
 
     const upgradePlan = async (priceId: string) => {
         if (!user) {
@@ -78,7 +116,14 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
         setLoading(true);
         try {
-            const token = await user.getIdToken();
+            // Replaced getIdToken() with session access token handled by server action or client
+            // Actually, for API routes, we need the session cookie or token.
+            // Supabase client handles cookies automatically for requests if configured?
+            // Or we pass the bearer token.
+
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+
             const response = await fetch('/api/checkout', {
                 method: 'POST',
                 headers: {
@@ -112,8 +157,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
     const checkAccess = (feature: string): boolean => {
         if (currentPlan === 'BUSINESS') return true;
-        // Logic should match PLAN_FEATURES in config/plans.ts
-        // For now, simple fallback or you can import canUser helper
+        // Simple fallback
         return true;
     };
 

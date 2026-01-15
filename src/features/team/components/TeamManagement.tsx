@@ -1,18 +1,14 @@
-'use client';
 
 import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where } from 'firebase/firestore';
 import { Barber } from '../types';
+import { useTeam } from '../hooks/useTeam';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Trash2, Edit2, Plus, User as UserIcon, Users } from 'lucide-react';
-import ImageUploader from '@/components/ui/ImageUploader'; // Using existing component
+import ImageUploader from '@/components/ui/ImageUploader';
 import { useToast } from '@/components/ui/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -21,11 +17,18 @@ interface Props {
 }
 
 export default function TeamManagement({ barbershopId }: Props) {
-    const [barbers, setBarbers] = useState<Barber[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const {
+        barbers,
+        isLoading,
+        fetchBarbers,
+        saveBarber,
+        deleteBarber,
+        toggleActiveBarber
+    } = useTeam(barbershopId);
+
+    const { toast } = useToast();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingBarber, setEditingBarber] = useState<Barber | null>(null);
-    const { toast } = useToast();
 
     // Form State
     const [name, setName] = useState('');
@@ -34,23 +37,8 @@ export default function TeamManagement({ barbershopId }: Props) {
     const [photoUrl, setPhotoUrl] = useState('');
 
     useEffect(() => {
-        if (!barbershopId) return;
-
-        const q = query(
-            collection(db, 'barbershops', barbershopId, 'professionals')
-        );
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            })) as Barber[];
-            setBarbers(data);
-            setIsLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [barbershopId]);
+        fetchBarbers();
+    }, [fetchBarbers]);
 
     const handleOpenDialog = (barber?: Barber) => {
         if (barber) {
@@ -70,50 +58,36 @@ export default function TeamManagement({ barbershopId }: Props) {
     };
 
     const handleSave = async () => {
-        if (!name || !specialty) {
+        // Validation
+        if (!name.trim() || !specialty.trim()) {
             toast({ title: "Erro", description: "Nome e especialidade são obrigatórios.", variant: "destructive" });
             return;
         }
 
-        try {
-            const barberData = {
-                name,
-                specialty,
-                phone,
-                photoUrl,
-                active: true
-            };
+        if (!barbershopId) {
+            toast({ title: "Erro", description: "ID da barbearia não encontrado.", variant: "destructive" });
+            return;
+        }
 
-            if (editingBarber) {
-                await updateDoc(doc(db, 'barbershops', barbershopId, 'professionals', editingBarber.id), barberData);
-                toast({ title: "Sucesso", description: "Profissional atualizado." });
-            } else {
-                await addDoc(collection(db, 'barbershops', barbershopId, 'professionals'), barberData);
-                toast({ title: "Sucesso", description: "Profissional adicionado." });
-            }
+        const barberData: any = {
+            name,
+            specialty,
+            phone,
+            photoUrl,
+            barbershopId,
+            active: editingBarber ? editingBarber.active : true
+        };
+
+        const success = await saveBarber(barberData, editingBarber?.id);
+
+        if (success) {
             setIsDialogOpen(false);
-        } catch (error) {
-            console.error(error);
-            toast({ title: "Erro", description: "Falha ao salvar.", variant: "destructive" });
         }
     };
 
     const handleDelete = async (barberId: string) => {
         if (!confirm("Tem certeza que deseja remover este profissional?")) return;
-        try {
-            await deleteDoc(doc(db, 'barbershops', barbershopId, 'professionals', barberId));
-            toast({ title: "Removido", description: "Profissional removido com sucesso." });
-        } catch (error) {
-            toast({ title: "Erro", description: "Erro ao remover.", variant: "destructive" });
-        }
-    };
-
-    const toggleActive = async (barber: Barber) => {
-        try {
-            await updateDoc(doc(db, 'barbershops', barbershopId, 'professionals', barber.id), { active: !barber.active });
-        } catch (error) {
-            toast({ title: "Erro", description: "Falha ao atualizar status.", variant: "destructive" });
-        }
+        await deleteBarber(barberId);
     };
 
     return (
@@ -160,7 +134,7 @@ export default function TeamManagement({ barbershopId }: Props) {
                                     <div className="absolute bottom-0 right-0">
                                         <Switch
                                             checked={barber.active}
-                                            onCheckedChange={() => toggleActive(barber)}
+                                            onCheckedChange={() => toggleActiveBarber(barber)}
                                             className="data-[state=checked]:bg-green-500 ring-2 ring-slate-900"
                                         />
                                     </div>

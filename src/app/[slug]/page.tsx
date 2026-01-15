@@ -7,12 +7,12 @@ import { getBarbershopBySlug } from '@/features/barbershops/services/serverBarbe
 
 export default async function PublicBarberPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
-    console.log('Buscando slug:', slug);
+
 
     const data = await getBarbershopBySlug(slug);
 
     if (!data) {
-        console.log('Nenhuma barbearia encontrada para o slug:', slug);
+
         notFound();
     }
 
@@ -20,7 +20,7 @@ export default async function PublicBarberPage({ params }: { params: Promise<{ s
     const isDev = process.env.NODE_ENV === 'development';
 
     if (!isDev && !data.isPublished) {
-        console.log('Barbearia nao publicada (producao):', slug);
+
         notFound();
     }
 

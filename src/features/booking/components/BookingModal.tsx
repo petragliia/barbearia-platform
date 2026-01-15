@@ -6,8 +6,9 @@ import { X, Clock, Check, ChevronRight, ChevronLeft, User, ShoppingBag } from 'l
 import { Service } from '@/types/barbershop';
 import { useBooking } from '@/features/booking/hooks/useBooking';
 import { useLoyalty } from '@/features/loyalty/hooks/useLoyalty';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { createClient } from '@/lib/supabase/client';
+// import { db } from '@/lib/firebase';
+// import { collection, getDocs, query, where } from 'firebase/firestore';
 import { Barber } from '@/features/team/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -58,18 +59,39 @@ export default function BookingModal({ isOpen, onClose, barbershopId, services, 
             setSelectedProducts([]);
 
             const fetchBarbers = async () => {
-                const q = query(collection(db, 'barbershops', barbershopId, 'professionals'), where('active', '==', true));
-                const snapshot = await getDocs(q);
-                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Barber[];
-                setBarbers(data);
+                const supabase = createClient();
+                const { data, error } = await supabase
+                    .from('professionals')
+                    .select('*')
+                    .eq('barbershop_id', barbershopId)
+                    .eq('active', true);
+
+                if (data) {
+                    setBarbers(data.map((b: any) => ({
+                        id: b.id,
+                        ...b,
+                        photoUrl: b.photo_url // Map snake_case
+                    })));
+                }
             };
             fetchBarbers();
 
             const fetchProducts = async () => {
-                const q = query(collection(db, 'products'), where('barbershopId', '==', barbershopId), where('active', '==', true));
-                const snapshot = await getDocs(q);
-                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Product[];
-                setProducts(data);
+                const supabase = createClient();
+                const { data, error } = await supabase
+                    .from('products')
+                    .select('*')
+                    .eq('barbershop_id', barbershopId) // Assuming snake_case
+                    .eq('active', true);
+
+                if (data) {
+                    setProducts(data.map((p: any) => ({
+                        id: p.id,
+                        barberId: p.barbershop_id,
+                        imageUrl: p.image_url,
+                        ...p
+                    })));
+                }
             };
             fetchProducts();
         }

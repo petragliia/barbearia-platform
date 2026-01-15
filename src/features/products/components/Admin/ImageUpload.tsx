@@ -2,8 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "@/lib/firebase";
+import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import { Loader2, UploadCloud, X } from "lucide-react";
 
@@ -16,6 +15,7 @@ interface ImageUploadProps {
 export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const supabase = createClient();
 
     const onDrop = useCallback(
         async (acceptedFiles: File[]) => {
@@ -33,12 +33,19 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
             try {
                 const fileExt = file.name.split(".").pop();
                 const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-                const storageRef = ref(storage, `products/${fileName}`);
+                const filePath = `products/${fileName}`;
 
-                await uploadBytes(storageRef, file);
-                const downloadUrl = await getDownloadURL(storageRef);
+                const { error: uploadError } = await supabase.storage
+                    .from('products') // Assuming bucket name 'products'
+                    .upload(filePath, file);
 
-                onChange(downloadUrl);
+                if (uploadError) throw uploadError;
+
+                const { data } = supabase.storage
+                    .from('products')
+                    .getPublicUrl(filePath);
+
+                onChange(data.publicUrl);
             } catch (err) {
                 console.error("Upload error:", err);
                 setError("Erro ao fazer upload da imagem");

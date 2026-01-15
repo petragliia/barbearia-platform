@@ -1,7 +1,7 @@
 'use client';
 
-import { useEditor } from '@/hooks/useEditor';
-import { useSaveTheme } from '@/hooks/useSaveTheme';
+import { useEditor } from '@/features/editor/hooks/useEditor';
+import { useSaveTheme } from '@/features/customization/hooks/useSaveTheme';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import {

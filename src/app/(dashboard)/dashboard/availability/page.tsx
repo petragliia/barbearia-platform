@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getBarbershop, updateBarbershopByOwner } from '@/lib/services/barbershopService';
 import { Button } from '@/components/ui/button';
 import { Clock, Save, CheckCircle2 } from 'lucide-react';
 import { BarbershopData } from '@/types/barbershop';
@@ -23,19 +22,20 @@ export default function AvailabilityPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [fullData, setFullData] = useState<BarbershopData | null>(null);
 
     const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5, 6]); // Default Mon-Sat
     const [hours, setHours] = useState({ start: '09:00', end: '19:00' });
 
     useEffect(() => {
         const fetchSettings = async () => {
-            if (!user) return;
+            const userId = (user as any)?.uid || user?.id;
+            if (!userId) return;
             try {
-                const docRef = doc(db, 'barbershops', user.uid);
-                const docSnap = await getDoc(docRef);
+                const data = await getBarbershop(userId);
 
-                if (docSnap.exists()) {
-                    const data = docSnap.data() as BarbershopData;
+                if (data) {
+                    setFullData(data);
                     if (data.content?.availability) {
                         setSelectedDays(data.content.availability.days);
                         setHours(data.content.availability.hours);
@@ -52,20 +52,34 @@ export default function AvailabilityPage() {
     }, [user]);
 
     const handleSave = async () => {
-        if (!user) return;
+        const userId = (user as any)?.uid || user?.id;
+        if (!userId) return;
         setSaving(true);
         setSuccess(false);
 
         try {
-            const docRef = doc(db, 'barbershops', user.uid);
-            await updateDoc(docRef, {
-                'content.availability': {
+            // Merge content to avoid data loss
+            const existingContent = fullData?.content || {};
+            const updatedContent = {
+                ...existingContent,
+                availability: {
                     days: selectedDays,
                     hours: hours
                 }
+            };
+
+            await updateBarbershopByOwner(userId, {
+                content: updatedContent as any
             });
+
             setSuccess(true);
             setTimeout(() => setSuccess(false), 3000);
+
+            // Update local state
+            if (fullData) {
+                setFullData({ ...fullData, content: updatedContent as any });
+            }
+
         } catch (error) {
             console.error("Error saving availability:", error);
             alert("Erro ao salvar configurações.");

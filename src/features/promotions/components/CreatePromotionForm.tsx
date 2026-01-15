@@ -37,7 +37,7 @@ export default function CreatePromotionForm({ services, products, onSuccess }: P
         setIsLoading(true);
 
         try {
-            const result = await createPromotion(user.uid, data);
+            const result = await createPromotion(user.id, data);
 
             if (result.success) {
                 toast({ title: "Promotion created!", description: "The promotion has been successfully created." });

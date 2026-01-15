@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useEditor } from '@/hooks/useEditor';
-import { useSaveTheme } from '@/hooks/useSaveTheme';
+import { useEditor } from '@/features/editor/hooks/useEditor';
+import { useSaveTheme } from '@/features/customization/hooks/useSaveTheme';
 import { BarbershopData } from '@/types/barbershop';
 import { Button } from '@/components/ui/button';
 import { Loader2, Undo, Save, Smartphone, Palette, Layout, Type, Upload, Check, Edit3 } from 'lucide-react';
@@ -11,9 +11,8 @@ import TemplateClassic from '@/features/templates/components/TemplateClassic';
 import TemplateModern from '@/features/templates/components/TemplateModern';
 import TemplateUrban from '@/features/templates/components/TemplateUrban';
 import { cn } from '@/lib/utils';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { getBarbershop } from '@/lib/services/barbershopService';
 
 // Mock Font Options (Simulated)
 const FONTS = [
@@ -22,7 +21,7 @@ const FONTS = [
     { id: 'mono', name: 'JetBrains (Tech)', class: 'font-mono' },
 ];
 
-import { useTour } from '@/hooks/useTour';
+import { useTour } from '@/features/onboarding/hooks/useTour';
 
 export default function DesignEditorPage() {
     const { user } = useAuth();
@@ -45,10 +44,9 @@ export default function DesignEditorPage() {
         const fetchBarbershop = async () => {
             if (!user) return;
             try {
-                const docRef = doc(db, 'barbershops', user.uid);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    setInitialData(docSnap.data() as BarbershopData);
+                const data = await getBarbershop(user.id);
+                if (data) {
+                    setInitialData(data);
                 }
             } catch (error) {
                 console.error("Error fetching barbershop:", error);

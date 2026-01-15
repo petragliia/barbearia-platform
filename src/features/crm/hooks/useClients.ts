@@ -1,8 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { createClient } from '@/lib/supabase/client';
 import { Appointment } from '@/types/appointment';
 import { Client } from '../types';
 
@@ -10,32 +9,38 @@ export function useClients() {
     const { user } = useAuth();
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
+    const supabase = createClient();
 
     useEffect(() => {
         const fetchAndAggregate = async () => {
             if (!user) return;
             try {
                 // Fetch all appointments
-                const q = query(
-                    collection(db, 'appointments'),
-                    where('barbershopId', '==', user.uid),
-                    orderBy('date', 'desc')
-                );
+                // Assuming appointments table has 'barbershop_id' snake_case
+                const { data, error } = await supabase
+                    .from('appointments')
+                    .select('*')
+                    .eq('barbershop_id', user.id) // Assuming user.uid maps to barbershopId (owner)
+                    .order('date', { ascending: false });
 
-                const snapshot = await getDocs(q);
-                const appointments = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                })) as Appointment[];
+                if (error) throw error;
+
+                const appointments = (data || []).map(app => ({
+                    ...app,
+                    // Map snake_case to camelCase if needed, assuming appointment type matches
+                    customerName: app.customer_name,
+                    customerPhone: app.customer_phone,
+                    // date: app.date is ISO string from Postgres
+                })) as any[]; // Type assertion for now, ideally fix Appointment type
 
                 // Aggregate by Phone
                 const clientMap = new Map<string, Client>();
 
-                appointments.forEach(app => {
+                appointments.forEach((app: any) => {
                     const phone = app.customerPhone;
                     if (!phone) return;
 
-                    const date = app.date.seconds ? new Date(app.date.seconds * 1000) : new Date(app.date);
+                    const date = new Date(app.date);
 
                     if (!clientMap.has(phone)) {
                         clientMap.set(phone, {
@@ -57,7 +62,7 @@ export function useClients() {
                     // Update client data
                     client.history.push(app);
 
-                    if (app.status === 'confirmed') {
+                    if (app.status === 'confirmed' || app.status === 'completed') { // checking completed as well
                         client.totalVisits += 1;
                         client.totalSpend += app.price;
                     }
@@ -93,7 +98,7 @@ export function useClients() {
         };
 
         fetchAndAggregate();
-    }, [user]);
+    }, [user, supabase]);
 
     return { clients, loading };
 }

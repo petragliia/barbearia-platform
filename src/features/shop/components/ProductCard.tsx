@@ -7,7 +7,7 @@ import { Minus, Plus, ShoppingBag } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils'; // Assuming this utility exists, widely used in modern stacks
 
-export type ThemeVariant = 'classic' | 'modern' | 'urban';
+export type ThemeVariant = 'classic' | 'modern' | 'urban' | 'volt';
 
 interface ProductCardProps {
     product: Product;
@@ -55,6 +55,13 @@ export default function ProductCard({ product, theme = 'modern' }: ProductCardPr
             button: 'bg-red-600 text-white hover:bg-red-700',
             price: 'text-red-500',
             border: 'border-white/10 bg-zinc-900 text-white',
+        },
+        volt: {
+            font: 'font-sans font-bold',
+            borderRadius: 'rounded-lg',
+            button: 'bg-blue-600 text-white hover:bg-blue-700 shadow-[0_0_10px_rgba(37,99,235,0.5)]',
+            price: 'text-blue-600',
+            border: 'border-blue-500/20 bg-slate-900 text-white',
         }
     };
 
